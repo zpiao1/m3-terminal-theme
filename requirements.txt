@@ -1,0 +1,5 @@
+# Material 3 colour maths + wallpaper quantization (2025 spec needs 3.x)
+materialyoucolor>=3.0.4
+# Image decode (Image.Resampling needs 9.1+) and pixel array handling
+pillow>=9.1
+numpy
