@@ -1,0 +1,2 @@
+# Bash chokes on CRLF ($'\r': command not found); keep shell scripts LF on checkout.
+*.sh text eol=lf
