@@ -31,8 +31,11 @@ function global:prompt {
     while ($dir) {
         $head = "$dir\.git\HEAD"
         if ([IO.File]::Exists($head)) {
-            $ref = [IO.File]::ReadAllText($head).Trim()
-            $branch = if ($ref -match '^ref: refs/heads/(.+)$') { $Matches[1] } else { $ref.Substring(0, 7) }
+            # HEAD is read raw (git's own ref-name checks don't apply to a .git
+            # dir unpacked from an archive), so drop control chars: an ESC in
+            # it would otherwise reach the terminal as an escape sequence.
+            $ref = [IO.File]::ReadAllText($head).Trim() -replace '[\x00-\x1f\x7f-\x9f]', ''
+            $branch = if ($ref -match '^ref: refs/heads/(.+)$') { $Matches[1] } else { $ref.Substring(0, [Math]::Min(7, $ref.Length)) }
             break
         }
         $dir = [IO.Path]::GetDirectoryName($dir)
