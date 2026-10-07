@@ -1,0 +1,11 @@
+# Local copies of the original terminal settings / profile / statusline,
+# taken before the first run. Rollback aid for this PC only; never publish.
+backup/
+
+# Runtime output
+m3sync.log
+*.m3tmp
+
+# Python build residue
+__pycache__/
+*.pyc
