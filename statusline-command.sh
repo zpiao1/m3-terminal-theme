@@ -54,13 +54,28 @@ IFS=$'\x1f' read -r cwd model_id model_short effort cost_usd cost_cents used_pct
 segments=()
 
 # 1. Directory
+# Longest folder/branch name shown in full; longer ones end in "…". The real
+# terminal width isn't visible here (Claude Code runs this under a hidden
+# 120x30 console), so a fixed cap is the reliable bound.
+MAX_NAME=20
+# UTF-8 locale so ${#1} and the slice count characters, not bytes.
+cap() { local LC_ALL=C.UTF-8; if [ ${#1} -le $MAX_NAME ]; then printf '%s' "$1"; else printf '%s…' "${1:0:MAX_NAME-1}"; fi; }
+
 if [ -n "$cwd" ]; then
+  # Claude Code reports C:\Users\...; match $HOME's /c/Users/... form.
+  display_cwd="${cwd//\\//}"
+  [[ $display_cwd =~ ^([A-Za-z]):(/.*)?$ ]] && display_cwd="/${BASH_REMATCH[1],}${BASH_REMATCH[2]}"
   # \~ not ~: bash tilde-expands an unquoted ~ in the replacement back to $HOME.
-  display_cwd="${cwd/#$HOME/\~}"
+  display_cwd="${display_cwd/#$HOME/\~}"
+  last=$(cap "${display_cwd##*/}")
   slashes="${display_cwd//[^\/]/}"
   if [ $(( ${#slashes} + 1 )) -gt 4 ]; then
     IFS=/ read -r p0 p1 _ <<< "$display_cwd"
-    display_cwd="${p0}/${p1}/…/${display_cwd##*/}"
+    display_cwd="${p0}/${p1}/…/${last}"
+  elif [ -n "$slashes" ]; then
+    display_cwd="${display_cwd%/*}/${last}"
+  else
+    display_cwd="$last"
   fi
 else
   display_cwd="~"
@@ -73,7 +88,7 @@ if [ -n "$cwd" ] && [ -d "$cwd" ]; then
   branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
 fi
 [ -n "$branch" ] && [ "$branch" != "HEAD" ] && \
-  segments+=("BRANCH|  ${branch} ")
+  segments+=("BRANCH|  $(cap "$branch") ")
 
 # 3. Model + effort — display_name already carries the version ("Opus 5.5")
 case "$model_id" in *"[1m]"*) model_short="${model_short}·1M" ;; esac

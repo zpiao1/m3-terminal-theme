@@ -143,7 +143,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
     // 1. Directory
     let cwd = text(json, &["cwd"]);
     let display_cwd = match cwd {
-        Some(cwd) => shorten_dir(&tilde(cwd, home)),
+        Some(cwd) => shorten_dir(&tilde(&msys_path(Path::new(cwd)), home)),
         None => "~".to_string(),
     };
     segments.push(("DIR", format!(" {display_cwd} ")));
@@ -153,7 +153,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         let dir = native_path(cwd);
         if dir.is_dir() {
             if let Some(branch) = git_branch(&dir).filter(|b| !b.is_empty() && b != "HEAD") {
-                segments.push(("BRANCH", format!("  {branch} ")));
+                segments.push(("BRANCH", format!("  {} ", cap(&branch))));
             }
         }
     }
@@ -265,15 +265,31 @@ fn tilde(cwd: &str, home: &Path) -> String {
 }
 
 /// More than 4 components: keep the first two and the last, e.g. ~/a/…/d.
+/// The last is capped too, so one long folder name can't overflow the line.
 fn shorten_dir(d: &str) -> String {
+    let (head, last) = d.rsplit_once('/').unwrap_or(("", d));
+    let last = cap(last);
     if d.matches('/').count() + 1 > 4 {
         let mut parts = d.splitn(3, '/');
         let p0 = parts.next().unwrap_or("");
         let p1 = parts.next().unwrap_or("");
-        let last = d.rsplit('/').next().unwrap_or("");
         return format!("{p0}/{p1}/…/{last}");
     }
-    d.to_string()
+    if d.contains('/') { format!("{head}/{last}") } else { last }
+}
+
+/// Longest name (folder or branch) shown in full; longer ones end in "…".
+/// Claude Code runs the statusline under a hidden 120x30 console, so the real
+/// terminal width isn't knowable here - a fixed cap is the reliable bound.
+const MAX_NAME: usize = 20;
+
+fn cap(s: &str) -> String {
+    if s.chars().count() <= MAX_NAME {
+        return s.to_string();
+    }
+    let mut out: String = s.chars().take(MAX_NAME - 1).collect();
+    out.push('…');
+    out
 }
 
 fn settings_effort(home: &Path) -> Option<String> {

@@ -40,6 +40,19 @@ for cwd in "$HOME" "$HOME/m3-terminal-theme" "$HOME/m3-terminal-theme/statusline
   check "cwd=$cwd" "{\"cwd\":\"$cwd\",$model}"
 done
 
+# Long names are capped; Claude Code itself reports native C:\... paths.
+long="OpenType Feature Freezer"
+g init "$fx/$long" && g -C "$fx/$long" commit --allow-empty -m x && g -C "$fx/$long" checkout -b feature/a-very-long-branch-name
+mkdir -p "$fx/$long/a/b/c" "$fx/exactly-twenty-chars" "$fx/ünïcödé-földer-nämé-lång"
+win() { cygpath -w "$1" | sed 's/\\/\\\\/g'; }  # JSON-escaped C:\...
+for cwd in "$fx/$long" "$fx/$long/a/b/c" "$fx/exactly-twenty-chars" "$fx/ünïcödé-földer-nämé-lång"; do
+  check "cwd=$cwd" "{\"cwd\":\"$cwd\",$model}"
+  check "win cwd=$cwd" "{\"cwd\":\"$(win "$cwd")\",$model}"
+done
+check "win home" "{\"cwd\":\"$(win "$HOME")\",$model}"
+check "win home sub" "{\"cwd\":\"$(win "$HOME/m3-terminal-theme/statusline")\",$model}"
+check "win drive" '{"cwd":"C:\\"}'
+
 for pct in 0 4 5 12.5 13.5 49.4 49.5 50 74.9 75 99 100 120 -3; do
   check "ctx=$pct" "{\"cwd\":\"$HOME\",\"context_window\":{\"used_percentage\":$pct}}"
   check "rate=$pct" "{\"rate_limits\":{\"five_hour\":{\"used_percentage\":$pct},\"seven_day\":{\"used_percentage\":$pct}}}"
