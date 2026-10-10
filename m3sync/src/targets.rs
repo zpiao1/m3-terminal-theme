@@ -59,13 +59,10 @@ const SYNTAX: [(&str, &str); 13] = [
 ];
 const SELECTION: (&str, &str) = ("secondaryContainer", "onSecondaryContainer");
 
-/// Where the writers write. `Targets::system()` is the real machine; tests
-/// point everything at a scratch directory.
+/// Where the writers write.
 pub struct Targets {
-    pub out_dir: PathBuf,
-    pub terminal_settings: Vec<(&'static str, PathBuf)>,
-    /// None: set HKCU\Environment PROMPT. Some(file): write the text there.
-    pub prompt_file: Option<PathBuf>,
+    out_dir: PathBuf,
+    terminal_settings: Vec<(&'static str, PathBuf)>,
 }
 
 impl Targets {
@@ -77,7 +74,6 @@ impl Targets {
         Self {
             out_dir: home().join(".config").join("m3-theme"),
             terminal_settings: vec![settings("WindowsTerminal"), settings("IntelligentTerminal")],
-            prompt_file: None,
         }
     }
 
@@ -104,7 +100,7 @@ impl Targets {
         }
         record("statusline", self.statusline(c, &header));
         record("powershell", self.powershell(c, &header));
-        record("cmd_prompt", self.cmd_prompt(c));
+        record("cmd_prompt", Self::cmd_prompt(c));
         changed
     }
 
@@ -163,11 +159,8 @@ impl Targets {
     // --- cmd ---------------------------------------------------------------
 
     /// Set HKCU\Environment PROMPT; broadcast so new terminals/tabs inherit it.
-    fn cmd_prompt(&self, c: &Colors) -> Result<bool> {
+    fn cmd_prompt(c: &Colors) -> Result<bool> {
         let text = cmd_prompt_text(c);
-        if let Some(file) = &self.prompt_file {
-            return write_if_changed(file, &text);
-        }
         if crate::win::get_env_prompt().as_deref() == Some(text.as_str()) {
             return Ok(false);
         }
@@ -284,7 +277,7 @@ fn ansi_rgb(hex: &str) -> String {
     format!("{r};{g};{b}")
 }
 
-/// `amount` of fg over bg. Rounds half to even, like the Python original.
+/// `amount` of fg over bg, rounding half to even (as the files have always been written).
 fn mix(fg: &str, bg: &str, amount: f64) -> String {
     let (f, b) = (rgb(fg), rgb(bg));
     let ch = |i: usize| (f64::from(f[i]) * amount + f64::from(b[i]) * (1.0 - amount)).round_ties_even() as u8;
@@ -305,8 +298,8 @@ pub fn to_json(v: &Value, indent: usize) -> String {
     String::from_utf8(out).expect("serde_json writes UTF-8")
 }
 
-/// Text as Python's open(encoding="utf-8-sig") reads it: BOM dropped and
-/// newlines normalised to \n, so a CRLF file compares equal to its LF twin.
+/// File text with any BOM dropped and newlines normalised to \n, so a CRLF
+/// file compares equal to its LF twin.
 fn read_text(path: &Path) -> std::io::Result<String> {
     let text = std::fs::read_to_string(path)?;
     let text = text.strip_prefix('\u{FEFF}').unwrap_or(&text);

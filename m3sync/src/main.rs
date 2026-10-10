@@ -55,15 +55,6 @@ fn main() {
     let flag = |name: &str| args.iter().any(|a| a == name);
     let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1));
 
-    // Test hook: render a palette file into a scratch dir (see parity.py).
-    if let (Some(pal), Some(dir), Some(mode)) = (value("--render"), value("--into"), value("--mode")) {
-        return render_for_test(Path::new(pal), Path::new(dir), mode == "dark");
-    }
-    if let Some(hex) = value("--from-source") {
-        let src = material_colors::color::Rgb::from_u32(u32::from_str_radix(hex.trim_start_matches('#'), 16).unwrap_or(0));
-        println!("{}", targets::to_json(&palette_json(&palette::from_source(src), None), 2));
-        return;
-    }
     if flag("--preview") {
         preview(&palette::build(&palette::wallpaper_path()));
         return;
@@ -144,7 +135,7 @@ impl Sync {
         }
         let (cache_mtime, pal) = self.cached.as_ref().expect("filled above");
         let changed = self.targets.apply(pal, dark); // also creates the output dir
-        let cache = targets::to_json(&palette_json(pal, Some(*cache_mtime)), 2) + "\n";
+        let cache = targets::to_json(&cache_json(pal, *cache_mtime), 2) + "\n";
         let _ = targets::write_if_changed(&self.targets.cache_path(), &cache);
         self.last = Some((mtime, dark));
         log.line(&format!(
@@ -175,21 +166,14 @@ fn wait_for_settle() {
     }
 }
 
-fn palette_json(pal: &Palette, mtime: Option<f64>) -> Value {
-    let mut v = json!({});
-    if let Some(m) = mtime {
-        v["generator"] = CACHE_GENERATOR.into();
-        v["mtime"] = m.into();
-    }
-    v["source"] = pal.source.clone().into();
-    v["dark"] = serde_json::to_value(&pal.dark).expect("string map");
-    v["light"] = serde_json::to_value(&pal.light).expect("string map");
-    v
-}
-
-fn palette_from_json(v: &Value) -> Option<Palette> {
-    let colors = |mode: &str| -> Option<Colors> { serde_json::from_value(v.get(mode)?.clone()).ok() };
-    Some(Palette { source: v.get("source")?.as_str()?.to_string(), dark: colors("dark")?, light: colors("light")? })
+fn cache_json(pal: &Palette, mtime: f64) -> Value {
+    json!({
+        "generator": CACHE_GENERATOR,
+        "mtime": mtime,
+        "source": pal.source,
+        "dark": pal.dark,
+        "light": pal.light,
+    })
 }
 
 fn load_cache(path: &Path) -> Option<(f64, Palette)> {
@@ -197,18 +181,9 @@ fn load_cache(path: &Path) -> Option<(f64, Palette)> {
     if v.get("generator")?.as_str()? != CACHE_GENERATOR {
         return None;
     }
-    Some((v.get("mtime")?.as_f64()?, palette_from_json(&v)?))
-}
-
-fn render_for_test(pal: &Path, dir: &Path, dark: bool) {
-    let v: Value = serde_json::from_str(&std::fs::read_to_string(pal).expect("palette file")).expect("palette JSON");
-    let pal = palette_from_json(&v).expect("palette shape");
-    let targets = Targets {
-        out_dir: dir.to_path_buf(),
-        terminal_settings: vec![("WindowsTerminal", dir.join("wt.json")), ("IntelligentTerminal", dir.join("it.json"))],
-        prompt_file: Some(dir.join("PROMPT.txt")),
-    };
-    println!("{}", targets.apply(&pal, dark).join(", "));
+    let colors = |mode: &str| -> Option<Colors> { serde_json::from_value(v.get(mode)?.clone()).ok() };
+    let pal = Palette { source: v.get("source")?.as_str()?.to_string(), dark: colors("dark")?, light: colors("light")? };
+    Some((v.get("mtime")?.as_f64()?, pal))
 }
 
 fn preview(pal: &Palette) {

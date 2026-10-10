@@ -6,12 +6,6 @@ backup/
 m3sync.log
 *.m3tmp
 
-# Python build residue
-__pycache__/
-*.pyc
-
 # Rust build output
 statusline/target/
-
-# Rust build output
 m3sync/target/

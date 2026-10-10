@@ -1,6 +1,6 @@
 # >>> m3-terminal-theme >>>
 # Material 3 Expressive prompt + PSReadLine colours. ~/m3-terminal-theme
-# (m3sync.py) regenerates palette.ps1 from the wallpaper with every escape
+# (m3sync) regenerates palette.ps1 from the wallpaper with every escape
 # string precomputed ($M3 = prompt pieces, $M3Syntax = PSReadLine colours);
 # this block only renders them. It runs on every prompt, so it uses .NET calls
 # rather than cmdlets. Must stay ABOVE the intelligent-terminal block so its

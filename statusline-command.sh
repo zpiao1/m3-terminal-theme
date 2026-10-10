@@ -19,7 +19,7 @@ SEP_THIN=$'\xee\x82\xb1'    # U+E0B1 thin chevron
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Material 3 Expressive palette — generated from the wallpaper by
-# m3sync.py in this repo (role choices in targets.py) and re-read
+# m3sync in this repo (role choices in m3sync/src/targets.rs) and re-read
 # on every render, so the bar follows wallpaper / light-dark changes live.
 # Per segment: C_* pill colour, F_* its text colour, T_* progress-track tint.
 # Without the file every pill falls back to one neutral grey pair.

@@ -2,7 +2,7 @@
 //! powerline. A port of ../statusline-command.sh that renders byte-identical
 //! output without forking bash, jq or git on every refresh.
 //!
-//! Reads the status JSON on stdin, the palette m3sync.py writes to
+//! Reads the status JSON on stdin, the palette m3sync writes to
 //! ~/.config/m3-theme/statusline.json, and the branch straight from .git/HEAD.
 
 use std::collections::HashMap;
@@ -22,7 +22,7 @@ const ROUND_L: &str = "\u{E0B6}"; // left half-circle
 const ROUND_R: &str = "\u{E0B4}"; // right half-circle
 const SEP_THIN: &str = "\u{E0B1}"; // thin chevron
 
-/// The keys of targets.PILLS; a new pill there needs a segment here too.
+/// The keys of PILLS in m3sync/src/targets.rs; a new pill there needs a segment here too.
 const SEGMENTS: [&str; 9] = ["DIR", "BRANCH", "MODEL", "COST", "CTX", "5H", "7D", "WARN", "DANGER"];
 
 fn main() {
@@ -48,7 +48,7 @@ fn home_dir() -> PathBuf {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Palette: per segment the pill colour, its text colour and the
-// progress-track tint, as "r;g;b". Written by targets.statusline().
+// progress-track tint, as "r;g;b". Written by m3sync (targets.rs).
 // ═══════════════════════════════════════════════════════════════════════════
 
 struct Pill {
