@@ -1,0 +1,29 @@
+[package]
+name = "m3sync"
+version = "0.1.0"
+edition = "2024"
+description = "Wallpaper -> Material 3 Expressive palette for Windows Terminal, the Claude Code statusline and the shell prompts"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "bmp"] }
+indexmap = { version = "2", features = ["serde"] }
+material-colors = { version = "0.5", features = ["quantize"] }
+serde = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Console",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

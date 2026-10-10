@@ -12,3 +12,6 @@ __pycache__/
 
 # Rust build output
 statusline/target/
+
+# Rust build output
+m3sync/target/
