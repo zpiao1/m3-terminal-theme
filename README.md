@@ -13,7 +13,7 @@ toward the source, drawn at mode-specific tones.
 | Target | How it updates |
 |---|---|
 | WT / Intelligent Terminal `settings.json` | upserts schemes + themes "Material You Dark/Light"; `profiles.defaults.colorScheme` = {dark,light}; `theme` rewritten on mode flip. Terminals hot-reload. |
-| `~/.config/m3-theme/statusline.sh` | read by the statusline (`statusline/`, or `statusline-command.sh`) every render |
+| `~/.config/m3-theme/statusline.json` / `.sh` | the same pill colours, read every render by `statusline/` / `statusline-command.sh` |
 | `HKCU\Environment\PROMPT` (cmd) | rewritten with baked-in truecolor (`$E[...`) + WM_SETTINGCHANGE broadcast; new cmd tabs/windows pick it up, open ones keep the old prompt |
 | `~/.config/m3-theme/palette.ps1` | re-read by the profile prompt when its mtime changes (prompt + PSReadLine colours) |
 

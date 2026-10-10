@@ -60,10 +60,8 @@ check "empty input" ''
 check "invalid json" '{"cwd":'
 
 # Without a palette file every pill falls back to the neutral greys.
-emptyhome="$fx/home"; mkdir -p "$emptyhome"
-a=$(printf '%s' "{\"cwd\":\"$fx/loose\",$model}" | HOME="$emptyhome" bash "$SH")
-b=$(printf '%s' "{\"cwd\":\"$fx/loose\",$model}" | HOME="$emptyhome" "$EXE")
-if [ "$a" == "$b" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL: no palette"; fi
+mkdir -p "$fx/home"
+HOME="$fx/home" check "no palette" "{\"cwd\":\"$fx/loose\",$model}"
 
 echo "parity: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

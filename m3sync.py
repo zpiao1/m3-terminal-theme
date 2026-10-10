@@ -128,7 +128,7 @@ def main():
             mtime = wallpaper_mtime()
             cached = {"mtime": mtime, **palette.build()}
         changed = targets.apply(cached, dark)       # also creates OUT_DIR
-        targets._write_if_changed(CACHE_PATH, json.dumps(cached, indent=2) + "\n")
+        targets.write_if_changed(CACHE_PATH, json.dumps(cached, indent=2) + "\n")
         last = (mtime, dark)
         log("%-9s source %s %s  %.2fs  updated: %s" % (
             reason, cached["source"], "dark" if dark else "light",

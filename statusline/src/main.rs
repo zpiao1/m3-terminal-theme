@@ -3,7 +3,7 @@
 //! output without forking bash, jq or git on every refresh.
 //!
 //! Reads the status JSON on stdin, the palette m3sync.py writes to
-//! ~/.config/m3-theme/statusline.sh, and the branch straight from .git/HEAD.
+//! ~/.config/m3-theme/statusline.json, and the branch straight from .git/HEAD.
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -22,6 +22,7 @@ const ROUND_L: &str = "\u{E0B6}"; // left half-circle
 const ROUND_R: &str = "\u{E0B4}"; // right half-circle
 const SEP_THIN: &str = "\u{E0B1}"; // thin chevron
 
+/// The keys of targets.PILLS; a new pill there needs a segment here too.
 const SEGMENTS: [&str; 9] = ["DIR", "BRANCH", "MODEL", "COST", "CTX", "5H", "7D", "WARN", "DANGER"];
 
 fn main() {
@@ -31,7 +32,7 @@ fn main() {
     let json: Value = serde_json::from_str(&input).unwrap_or(Value::Null);
 
     let home = home_dir();
-    let palette = load_palette(&home.join(".config").join("m3-theme").join("statusline.sh"));
+    let palette = load_palette(&home.join(".config").join("m3-theme").join("statusline.json"));
     let out = render(&json, &home, &palette);
     let _ = std::io::stdout().lock().write_all(out.as_bytes());
 }
@@ -46,61 +47,53 @@ fn home_dir() -> PathBuf {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Palette: C_* pill colour, F_* its text colour, T_* progress-track tint.
+// Palette: per segment the pill colour, its text colour and the
+// progress-track tint, as "r;g;b". Written by targets.statusline().
 // ═══════════════════════════════════════════════════════════════════════════
 
-type Palette = HashMap<String, String>;
-
-fn load_palette(path: &Path) -> Palette {
-    let mut p = Palette::new();
-    for s in SEGMENTS {
-        p.insert(format!("C_{s}"), "68;68;68".into());
-        p.insert(format!("F_{s}"), "230;230;230".into());
-        p.insert(format!("T_{s}"), "115;115;115".into());
-    }
-    p.insert("C_SEP".into(), "150;150;150".into());
-    if let Ok(text) = std::fs::read_to_string(path) {
-        for (name, value) in parse_assignments(&text) {
-            // The values land inside escape sequences, so only accept the
-            // r;g;b shape m3sync writes - anything else keeps the fallback.
-            if p.contains_key(&name) && is_rgb(&value) {
-                p.insert(name, value);
-            }
-        }
-    }
-    p
+struct Pill {
+    bg: String,
+    fg: String,
+    track: String,
 }
 
-/// Parses the generated file's `NAME="v"; NAME="v"` lines. The script sources
-/// it; this reads only the plain assignments it is made of.
-fn parse_assignments(text: &str) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for line in text.lines() {
-        let mut rest = line;
-        loop {
-            rest = rest.trim_start_matches(|c: char| c.is_whitespace() || c == ';');
-            if rest.is_empty() || rest.starts_with('#') {
-                break;
-            }
-            let Some(eq) = rest.find('=') else { break };
-            let name = &rest[..eq];
-            rest = &rest[eq + 1..];
-            let value;
-            if let Some(quoted) = rest.strip_prefix('"') {
-                let Some(end) = quoted.find('"') else { break };
-                value = &quoted[..end];
-                rest = &quoted[end + 1..];
-            } else {
-                let end = rest.find(|c: char| c.is_whitespace() || c == ';').unwrap_or(rest.len());
-                value = &rest[..end];
-                rest = &rest[end..];
-            }
-            if !name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
-                out.push((name.to_string(), value.to_string()));
-            }
+struct Palette {
+    pills: HashMap<&'static str, Pill>,
+    sep: String,
+}
+
+impl Palette {
+    fn pill(&self, seg: &str) -> &Pill {
+        &self.pills[seg]
+    }
+}
+
+fn load_palette(path: &Path) -> Palette {
+    // Without the file every pill falls back to one neutral grey pair.
+    let mut p = Palette {
+        pills: SEGMENTS
+            .iter()
+            .map(|&s| (s, Pill { bg: "68;68;68".into(), fg: "230;230;230".into(), track: "115;115;115".into() }))
+            .collect(),
+        sep: "150;150;150".into(),
+    };
+    let Some(json) = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
+    else {
+        return p;
+    };
+    // The values land inside escape sequences, so only accept the r;g;b shape
+    // m3sync writes - anything else keeps the fallback.
+    let rgb = |v: &Value| v.as_str().filter(|s| is_rgb(s)).map(str::to_string);
+    for (seg, pill) in p.pills.iter_mut() {
+        let Some(src) = json["pills"].get(*seg) else { continue };
+        if let (Some(bg), Some(fg), Some(track)) = (rgb(&src["bg"]), rgb(&src["fg"]), rgb(&src["track"])) {
+            *pill = Pill { bg, fg, track };
         }
     }
-    out
+    if let Some(sep) = rgb(&json["sep"]) {
+        p.sep = sep;
+    }
+    p
 }
 
 fn is_rgb(v: &str) -> bool {
@@ -141,9 +134,7 @@ fn pick_state(value: i64, warn_at: i64, danger_at: i64, normal: &'static str) ->
 /// printf '%.0f' and the integer bash then does arithmetic on. Both round half
 /// to even, so 12.5 -> 12 here as in the script.
 fn round_pct(v: f64) -> (String, i64) {
-    let s = format!("{v:.0}");
-    let n = s.parse::<f64>().map(|f| f as i64).unwrap_or(0);
-    (s, n)
+    (format!("{v:.0}"), v.round_ties_even() as i64)
 }
 
 fn render(json: &Value, home: &Path, pal: &Palette) -> String {
@@ -193,26 +184,19 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
     if let Some(used) = number(json, &["context_window", "used_percentage"]) {
         let (shown, ctx) = round_pct(used);
         let seg = pick_state(ctx, 50, 75, "CTX");
-        let ink = &pal[&format!("F_{seg}")];
-        let track = &pal[&format!("T_{seg}")];
+        let Pill { fg: ink, track, .. } = pal.pill(seg);
         // M3 linear progress: heavy line for the indicator, the same line in
         // the track tint for the rest (╸ = half step). 10 cells x 2 halves.
         let halves = ctx * 20 / 100;
-        let mut bar = String::new();
-        let mut i = 0;
-        while i < halves / 2 {
-            bar.push('━');
-            i += 1;
-        }
-        if halves % 2 == 1 {
-            bar.push('╸');
-            i += 1;
-        }
-        bar.push_str(&format!("{ESC}[38;2;{track}m"));
-        while i < 10 {
-            bar.push('━');
-            i += 1;
-        }
+        let full = (halves / 2).max(0) as usize;
+        let half = halves % 2 == 1;
+        let rest = 10usize.saturating_sub(full + half as usize);
+        let bar = format!(
+            "{}{}{ESC}[38;2;{track}m{}",
+            "━".repeat(full),
+            if half { "╸" } else { "" },
+            "━".repeat(rest)
+        );
         segments.push((seg, format!(" {bar}{ESC}[38;2;{ink}m {shown}% ")));
     }
 
@@ -228,12 +212,12 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
     let mut out = String::with_capacity(512);
     let mut prev_bg: Option<&str> = None;
     for (name, content) in &segments {
-        let bg = pal[&format!("C_{name}")].as_str();
-        let fg = &pal[&format!("F_{name}")];
+        let Pill { bg, fg, .. } = pal.pill(name);
+        let bg = bg.as_str();
         match prev_bg {
             None => out.push_str(&format!("{RST}{ESC}[38;2;{bg}m{ROUND_L}{ESC}[48;2;{bg}m")),
             Some(p) if p == bg => {
-                out.push_str(&format!("{RST}{ESC}[48;2;{bg}m{ESC}[38;2;{}m{SEP_THIN}", pal["C_SEP"]))
+                out.push_str(&format!("{RST}{ESC}[48;2;{bg}m{ESC}[38;2;{}m{SEP_THIN}", pal.sep))
             }
             Some(p) => out.push_str(&format!("{RST}{ESC}[38;2;{p}m{ESC}[48;2;{bg}m{ARROW}")),
         }

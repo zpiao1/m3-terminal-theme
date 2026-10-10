@@ -58,7 +58,7 @@ SELECTION = ("secondaryContainer", "onSecondaryContainer")
 
 # --- Helpers ----------------------------------------------------------------
 
-def _write_if_changed(path, text):
+def write_if_changed(path, text):
     try:
         with open(path, encoding="utf-8-sig") as f:
             if f.read() == text:
@@ -147,18 +147,25 @@ def terminal_settings(pal, dark, path):
     # rewritten when the app mode flips.
     defaults["colorScheme"] = {"dark": SCHEME[True], "light": SCHEME[False]}
     settings["theme"] = SCHEME[dark]
-    return _write_if_changed(path, json.dumps(settings, indent=4, ensure_ascii=False) + "\n")
+    return write_if_changed(path, json.dumps(settings, indent=4, ensure_ascii=False) + "\n")
 
 
 # --- Claude Code statusline ---------------------------------------------------
 
 def statusline(c, header):
+    """statusline.json for the Rust statusline, statusline.sh for the bash one."""
+    pills = {seg: {"bg": _rgb(c[bg]), "fg": _rgb(c[fg]),
+                   "track": _rgb(_mix(c[fg], c[bg], TRACK_INK))}
+             for seg, (bg, fg) in PILLS.items()}
+    sep = _rgb(c["outline"])
     lines = [header]
-    for seg, (bg, fg) in PILLS.items():
-        lines.append('C_%s="%s"; F_%s="%s"; T_%s="%s"' % (
-            seg, _rgb(c[bg]), seg, _rgb(c[fg]), seg, _rgb(_mix(c[fg], c[bg], TRACK_INK))))
-    lines.append('C_SEP="%s"' % _rgb(c["outline"]))
-    return _write_if_changed(os.path.join(OUT_DIR, "statusline.sh"), "\n".join(lines) + "\n")
+    lines += ['C_%s="%s"; F_%s="%s"; T_%s="%s"' % (seg, p["bg"], seg, p["fg"], seg, p["track"])
+              for seg, p in pills.items()]
+    lines.append('C_SEP="%s"' % sep)
+    as_json = json.dumps({"pills": pills, "sep": sep}, indent=2) + "\n"
+    changed_json = write_if_changed(os.path.join(OUT_DIR, "statusline.json"), as_json)
+    changed_sh = write_if_changed(os.path.join(OUT_DIR, "statusline.sh"), "\n".join(lines) + "\n")
+    return changed_json or changed_sh
 
 
 # --- PowerShell (ASCII: Windows PowerShell 5.1 reads BOM-less files as ANSI) --
@@ -179,7 +186,7 @@ def powershell(c, header):
     table = lambda d: "\n".join('    %-18s = "%s"' % kv for kv in sorted(d.items()))
     text = "%s\n$e = [char]27\n$global:M3 = @{\n%s\n}\n$global:M3Syntax = @{\n%s\n}\n" % (
         header, table(prompt), table(syntax))
-    return _write_if_changed(os.path.join(OUT_DIR, "palette.ps1"), text)
+    return write_if_changed(os.path.join(OUT_DIR, "palette.ps1"), text)
 
 
 # --- cmd ----------------------------------------------------------------------
