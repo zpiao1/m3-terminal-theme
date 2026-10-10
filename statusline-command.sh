@@ -55,7 +55,8 @@ segments=()
 
 # 1. Directory
 if [ -n "$cwd" ]; then
-  display_cwd="${cwd/#$HOME/~}"
+  # \~ not ~: bash tilde-expands an unquoted ~ in the replacement back to $HOME.
+  display_cwd="${cwd/#$HOME/\~}"
   slashes="${display_cwd//[^\/]/}"
   if [ $(( ${#slashes} + 1 )) -gt 4 ]; then
     IFS=/ read -r p0 p1 _ <<< "$display_cwd"

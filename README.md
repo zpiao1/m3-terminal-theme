@@ -13,7 +13,7 @@ toward the source, drawn at mode-specific tones.
 | Target | How it updates |
 |---|---|
 | WT / Intelligent Terminal `settings.json` | upserts schemes + themes "Material You Dark/Light"; `profiles.defaults.colorScheme` = {dark,light}; `theme` rewritten on mode flip. Terminals hot-reload. |
-| `~/.config/m3-theme/statusline.sh` | sourced by `statusline-command.sh` (this repo) every render |
+| `~/.config/m3-theme/statusline.sh` | read by the statusline (`statusline/`, or `statusline-command.sh`) every render |
 | `HKCU\Environment\PROMPT` (cmd) | rewritten with baked-in truecolor (`$E[...`) + WM_SETTINGCHANGE broadcast; new cmd tabs/windows pick it up, open ones keep the old prompt |
 | `~/.config/m3-theme/palette.ps1` | re-read by the profile prompt when its mtime changes (prompt + PSReadLine colours) |
 
@@ -31,10 +31,16 @@ like - both schemes are generated and the theme follows the switch.
    every login (Startup-folder shortcut, `pythonw`, logs to `m3sync.log`).
 4. PowerShell prompt: paste `profile-snippet.ps1` into `$PROFILE`, above any
    block that wraps `prompt` (e.g. the Intelligent Terminal integration).
-5. Claude Code statusline, in `~/.claude/settings.json`:
+5. Claude Code statusline: `cargo build --release` in `statusline/`, then in
+   `~/.claude/settings.json`:
 
        "statusLine": { "type": "command",
-                       "command": "bash ~/m3-terminal-theme/statusline-command.sh" }
+                       "command": "~/m3-terminal-theme/statusline/target/release/m3-statusline.exe" }
+
+   The Rust binary renders the same bytes as `statusline-command.sh` (which
+   stays as the no-toolchain fallback: `"bash ~/m3-terminal-theme/statusline-command.sh"`)
+   in ~26 ms instead of ~140 ms per refresh: no bash/jq/git forks - the branch
+   is read from `.git/HEAD`. `bash statusline/parity.sh` diffs the two.
 
 Other commands:
 

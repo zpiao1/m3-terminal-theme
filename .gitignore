@@ -9,3 +9,6 @@ m3sync.log
 # Python build residue
 __pycache__/
 *.pyc
+
+# Rust build output
+statusline/target/
