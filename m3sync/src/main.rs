@@ -21,7 +21,8 @@ use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{Value, json};
 
-use palette::{Colors, Palette};
+use material_colors::color::Rgb;
+use palette::Palette;
 use targets::Targets;
 
 const SINGLE_INSTANCE_PORT: u16 = 49732; // tt-keyboard-sync holds 49731
@@ -31,9 +32,12 @@ const SETTLE: Duration = Duration::from_millis(400);
 const SETTLE_TIMEOUT: Duration = Duration::from_secs(5);
 const RECHECK: Duration = Duration::from_secs(300); // safety net in case a notification is missed
 
-/// Bumped when the colour algorithm changes, so a palette cached by an older
-/// build is rebuilt rather than reused for an unchanged wallpaper.
-const CACHE_GENERATOR: &str = "m3sync-rs/material-colors-0.5";
+/// The cache holds only the expensive step's result - the wallpaper's source
+/// colour (decode + quantize + score) - keyed by the file's mtime. Schemes are
+/// rebuilt from it every time (a few ms), so editing a role table or updating
+/// material-colors can't leave a stale palette behind. Bump this only if the
+/// sampling or quantizing changes.
+const CACHE_GENERATOR: &str = "m3sync-rs/source-v1";
 
 struct Log(Option<File>);
 
@@ -56,7 +60,7 @@ fn main() {
     let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1));
 
     if flag("--preview") {
-        preview(&palette::build(&palette::wallpaper_path()));
+        preview(&palette::from_source(palette::source_color(&palette::wallpaper_path())));
         return;
     }
     if flag("--help") || flag("-h") {
@@ -80,11 +84,13 @@ fn main() {
     };
 
     let mut sync = Sync::new(Targets::system());
-    sync.apply("startup", &mut log);
     if once {
+        sync.apply("startup", &mut log);
         return;
     }
 
+    // Watch before the first apply, so a change while it settles and decodes
+    // is not left waiting for the re-check.
     let (tx, rx) = mpsc::channel();
     let wallpaper_dir = palette::wallpaper_path().parent().map(Path::to_path_buf).unwrap_or_default();
     for started in [win::watch_directory(&wallpaper_dir, tx.clone()), win::watch_registry(win::PERSONALIZE_KEY, tx)] {
@@ -92,6 +98,7 @@ fn main() {
             log.line(&format!("watcher: {e}; relying on the {}s re-check", RECHECK.as_secs()));
         }
     }
+    sync.apply("startup", &mut log);
     log.line("watching wallpaper and light/dark mode");
     loop {
         let reason = match rx.recv_timeout(RECHECK) {
@@ -109,17 +116,17 @@ fn main() {
 
 struct Sync {
     targets: Targets,
-    /// The last palette, keyed by the wallpaper mtime it was built from. A
-    /// light/dark flip only re-renders it, and a login with an unchanged
+    /// The wallpaper's source colour and the mtime (ns) it was taken at. A
+    /// light/dark flip only re-renders, and a login with an unchanged
     /// wallpaper skips the decode + quantize entirely.
-    cached: Option<(f64, Palette)>,
-    last: Option<(Option<f64>, bool)>,
+    source: Option<(u64, Rgb)>,
+    last: Option<(Option<u64>, bool)>,
 }
 
 impl Sync {
     fn new(targets: Targets) -> Self {
-        let cached = load_cache(&targets.cache_path());
-        Self { targets, cached, last: None }
+        let source = load_cache(&targets.cache_path());
+        Self { targets, source, last: None }
     }
 
     fn apply(&mut self, reason: &str, log: &mut Log) {
@@ -128,15 +135,16 @@ impl Sync {
             return;
         }
         let t0 = Instant::now();
-        if self.cached.as_ref().map(|c| c.0) != mtime || mtime.is_none() {
+        if mtime.is_none() || self.source.map(|s| s.0) != mtime {
             wait_for_settle(); // Windows writes the file in bursts
             mtime = wallpaper_mtime();
-            self.cached = Some((mtime.unwrap_or(0.0), palette::build(&palette::wallpaper_path())));
+            let source = (mtime.unwrap_or(0), palette::source_color(&palette::wallpaper_path()));
+            let cache = json!({"generator": CACHE_GENERATOR, "mtime_ns": source.0, "source": palette::hexcolor(source.1)});
+            let _ = targets::write_if_changed(&self.targets.cache_path(), &(targets::to_json(&cache, 2) + "\n"));
+            self.source = Some(source);
         }
-        let (cache_mtime, pal) = self.cached.as_ref().expect("filled above");
-        let changed = self.targets.apply(pal, dark); // also creates the output dir
-        let cache = targets::to_json(&cache_json(pal, *cache_mtime), 2) + "\n";
-        let _ = targets::write_if_changed(&self.targets.cache_path(), &cache);
+        let pal = palette::from_source(self.source.expect("filled above").1);
+        let changed = self.targets.apply(&pal, dark); // also creates the output dir
         self.last = Some((mtime, dark));
         log.line(&format!(
             "{reason:<9} source {} {}  {:.2}s  updated: {}",
@@ -148,9 +156,10 @@ impl Sync {
     }
 }
 
-fn wallpaper_mtime() -> Option<f64> {
+/// Nanoseconds since the epoch: an exact key, unlike float seconds.
+fn wallpaper_mtime() -> Option<u64> {
     let modified = std::fs::metadata(palette::wallpaper_path()).ok()?.modified().ok()?;
-    Some(modified.duration_since(SystemTime::UNIX_EPOCH).ok()?.as_secs_f64())
+    u64::try_from(modified.duration_since(SystemTime::UNIX_EPOCH).ok()?.as_nanos()).ok()
 }
 
 fn wait_for_settle() {
@@ -166,24 +175,13 @@ fn wait_for_settle() {
     }
 }
 
-fn cache_json(pal: &Palette, mtime: f64) -> Value {
-    json!({
-        "generator": CACHE_GENERATOR,
-        "mtime": mtime,
-        "source": pal.source,
-        "dark": pal.dark,
-        "light": pal.light,
-    })
-}
-
-fn load_cache(path: &Path) -> Option<(f64, Palette)> {
+fn load_cache(path: &Path) -> Option<(u64, Rgb)> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
     if v.get("generator")?.as_str()? != CACHE_GENERATOR {
         return None;
     }
-    let colors = |mode: &str| -> Option<Colors> { serde_json::from_value(v.get(mode)?.clone()).ok() };
-    let pal = Palette { source: v.get("source")?.as_str()?.to_string(), dark: colors("dark")?, light: colors("light")? };
-    Some((v.get("mtime")?.as_f64()?, pal))
+    let [r, g, b] = palette::rgb(v.get("source")?.as_str()?);
+    Some((v.get("mtime_ns")?.as_u64()?, Rgb::new(r, g, b)))
 }
 
 fn preview(pal: &Palette) {

@@ -12,13 +12,15 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 use windows_sys::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE};
 use windows_sys::Win32::System::Registry::{
-    HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, REG_SZ, RRF_RT_DWORD, RRF_RT_REG_EXPAND_SZ,
+    HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, REG_SZ, RRF_NOEXPAND, RRF_RT_DWORD, RRF_RT_REG_EXPAND_SZ,
     RRF_RT_REG_SZ, RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW, RegSetKeyValueW,
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, INFINITE, WaitForSingleObject};
 use windows_sys::Win32::UI::WindowsAndMessaging::{HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE};
 
 pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+const ENVIRONMENT_KEY: &str = "Environment";
+const PROMPT_VALUE: &str = "PROMPT";
 
 fn wide(s: impl AsRef<OsStr>) -> Vec<u16> {
     s.as_ref().encode_wide().chain(Some(0)).collect()
@@ -43,20 +45,17 @@ pub fn is_dark() -> bool {
 }
 
 pub fn get_env_prompt() -> Option<String> {
-    let (key, name) = (wide("Environment"), wide("PROMPT"));
-    let flags = RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ | 0x1000_0000; // RRF_NOEXPAND
-    let mut size = 0u32;
-    let rc = unsafe {
-        RegGetValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), flags, std::ptr::null_mut(), std::ptr::null_mut(), &mut size)
+    let (key, name) = (wide(ENVIRONMENT_KEY), wide(PROMPT_VALUE));
+    let query = |buf: *mut u16, size: &mut u32| unsafe {
+        let flags = RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ | RRF_NOEXPAND;
+        RegGetValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), flags, std::ptr::null_mut(), buf.cast(), size)
     };
-    if rc != ERROR_SUCCESS {
+    let mut size = 0u32;
+    if query(std::ptr::null_mut(), &mut size) != ERROR_SUCCESS {
         return None;
     }
     let mut buf = vec![0u16; (size as usize).div_ceil(2)];
-    let rc = unsafe {
-        RegGetValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), flags, std::ptr::null_mut(), buf.as_mut_ptr().cast(), &mut size)
-    };
-    if rc != ERROR_SUCCESS {
+    if query(buf.as_mut_ptr(), &mut size) != ERROR_SUCCESS {
         return None;
     }
     let len = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
@@ -68,8 +67,8 @@ pub fn set_env_prompt(text: &str) -> Result<(), String> {
     let rc = unsafe {
         RegSetKeyValueW(
             HKEY_CURRENT_USER,
-            wide("Environment").as_ptr(),
-            wide("PROMPT").as_ptr(),
+            wide(ENVIRONMENT_KEY).as_ptr(),
+            wide(PROMPT_VALUE).as_ptr(),
             REG_SZ,
             data.as_ptr().cast(),
             (data.len() * 2) as u32,
@@ -86,7 +85,7 @@ pub fn broadcast_environment_change() {
             HWND_BROADCAST,
             WM_SETTINGCHANGE,
             0,
-            wide("Environment").as_ptr() as isize,
+            wide(ENVIRONMENT_KEY).as_ptr() as isize,
             SMTO_ABORTIFHUNG,
             1000,
             &mut result,
@@ -183,7 +182,7 @@ mod tests {
     fn set(value: u32) {
         let data = value.to_le_bytes();
         let rc = unsafe {
-            RegSetKeyValueW(HKEY_CURRENT_USER, wide(KEY).as_ptr(), wide("v").as_ptr(), 4 /* REG_DWORD */, data.as_ptr().cast(), 4)
+            RegSetKeyValueW(HKEY_CURRENT_USER, wide(KEY).as_ptr(), wide("v").as_ptr(), windows_sys::Win32::System::Registry::REG_DWORD, data.as_ptr().cast(), 4)
         };
         assert_eq!(rc, ERROR_SUCCESS);
     }

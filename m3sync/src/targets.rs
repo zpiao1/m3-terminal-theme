@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value, json};
 
-use crate::palette::{CUSTOM, Colors, Palette, rgb};
+use crate::palette::{CUSTOM, Colors, Palette, capitalize, hexcolor, rgb};
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -25,9 +25,11 @@ const fn scheme_name(dark: bool) -> &'static str {
 // Pills sit directly on the terminal background. Neighbouring statusline
 // segments alternate primary/secondary/tertiary families so they always
 // differ, whatever the wallpaper. Warn/danger replace the whole segment.
-pub const PILLS: [(&str, &str, &str); 9] = [
-    ("DIR", "primaryContainer", "onPrimaryContainer"),
-    ("BRANCH", "secondaryFixedDim", "onSecondaryFixed"),
+const DIR: (&str, &str) = ("primaryContainer", "onPrimaryContainer");
+const BRANCH: (&str, &str) = ("secondaryFixedDim", "onSecondaryFixed");
+const PILLS: [(&str, &str, &str); 9] = [
+    ("DIR", DIR.0, DIR.1),
+    ("BRANCH", BRANCH.0, BRANCH.1),
     ("MODEL", "tertiaryContainer", "onTertiaryContainer"),
     ("COST", "secondaryFixed", "onSecondaryFixed"),
     ("CTX", "primaryFixedDim", "onPrimaryFixed"),
@@ -128,23 +130,20 @@ impl Targets {
 
     fn powershell(&self, c: &Colors, header: &str) -> Result<bool> {
         let fg = |role: &str| format!("$e[38;2;{}m", ansi_rgb(&c[role]));
-        let pill = |name: &str| {
-            let (_, bg, fg) = pill_roles(name);
-            format!("$e[48;2;{}m$e[38;2;{}m", ansi_rgb(&c[bg]), ansi_rgb(&c[fg]))
-        };
-        let edge = |name: &str| fg(pill_roles(name).1);
+        let bg = |role: &str| format!("$e[48;2;{}m", ansi_rgb(&c[role]));
+        let pair = |(b, f): (&str, &str)| bg(b) + &fg(f);
         let prompt = BTreeMap::from([
-            ("DirPill", pill("DIR")),
-            ("DirEdge", edge("DIR")),
-            ("BranchPill", pill("BRANCH")),
-            ("BranchEdge", edge("BRANCH")),
-            ("DirToBranch", edge("DIR") + &format!("$e[48;2;{}m", ansi_rgb(&c[pill_roles("BRANCH").1]))),
+            ("DirPill", pair(DIR)),
+            ("DirEdge", fg(DIR.0)),
+            ("BranchPill", pair(BRANCH)),
+            ("BranchEdge", fg(BRANCH.0)),
+            ("DirToBranch", fg(DIR.0) + &bg(BRANCH.0)),
             ("Ok", fg(PROMPT_OK)),
             ("Err", fg(PROMPT_ERR)),
         ]);
         let mut syntax: BTreeMap<&str, String> = SYNTAX.iter().map(|&(token, role)| (token, fg(role))).collect();
         syntax.insert("Emphasis", "$e[1m".to_string() + &fg("primary"));
-        syntax.insert("Selection", format!("$e[48;2;{}m$e[38;2;{}m", ansi_rgb(&c[SELECTION.0]), ansi_rgb(&c[SELECTION.1])));
+        syntax.insert("Selection", pair(SELECTION));
         let table = |d: &BTreeMap<&str, String>| {
             d.iter().map(|(k, v)| format!(r#"    {k:<18} = "{v}""#)).collect::<Vec<_>>().join("\n")
         };
@@ -170,17 +169,12 @@ impl Targets {
     }
 }
 
-fn pill_roles(name: &str) -> (&'static str, &'static str, &'static str) {
-    *PILLS.iter().find(|p| p.0 == name).expect("known pill")
-}
-
 /// Rounded DIR pill with the path, then the OK chevron.
 ///
 /// cmd has no hooks to re-read a palette, but PROMPT expands $E to ESC, so
 /// the colours are baked in and the variable is rewritten on every change.
 fn cmd_prompt_text(c: &Colors) -> String {
-    let (_, bg, fg) = pill_roles("DIR");
-    let (bg, fg, ok) = (ansi_rgb(&c[bg]), ansi_rgb(&c[fg]), ansi_rgb(&c[PROMPT_OK]));
+    let (bg, fg, ok) = (ansi_rgb(&c[DIR.0]), ansi_rgb(&c[DIR.1]), ansi_rgb(&c[PROMPT_OK]));
     format!("$E[0m$E[38;2;{bg}m\u{E0B6}$E[48;2;{bg}m$E[38;2;{fg}m$E[1m $P $E[0m$E[38;2;{bg}m\u{E0B4}$E[0m $E[38;2;{ok}m$E[1m❯$E[0m ")
 }
 
@@ -188,28 +182,27 @@ fn cmd_prompt_text(c: &Colors) -> String {
 
 fn wt_scheme(c: &Colors, dark: bool) -> Value {
     // WT calls ANSI magenta "purple"
-    let wt = |name: &str| if name == "magenta" { "purple".to_string() } else { name.to_string() };
-    let mut m = Map::new();
-    let mut put = |k: String, v: &str| {
-        m.insert(k, Value::String(v.to_string()));
-    };
-    put("name".into(), scheme_name(dark));
-    put("background".into(), &c["surface"]);
-    put("foreground".into(), &c["onSurface"]);
-    put("cursorColor".into(), &c["primary"]);
-    put("selectionBackground".into(), &c[SELECTION.0]);
-    // ANSI black/white are "darkest/lightest", so they swap with the mode.
-    put("black".into(), if dark { &c["surfaceContainerHighest"] } else { &c["onSurface"] });
-    put("brightBlack".into(), &c["outline"]);
-    put("white".into(), if dark { &c["onSurfaceVariant"] } else { &c["surfaceContainerHighest"] });
-    put("brightWhite".into(), if dark { &c["onSurface"] } else { &c["surfaceContainerLowest"] });
+    let wt = |name: &'static str| if name == "magenta" { "purple" } else { name };
+    let mut scheme = json!({
+        "name": scheme_name(dark),
+        "background": c["surface"],
+        "foreground": c["onSurface"],
+        "cursorColor": c["primary"],
+        "selectionBackground": c[SELECTION.0],
+        // ANSI black/white are "darkest/lightest", so they swap with the mode.
+        "black": if dark { &c["surfaceContainerHighest"] } else { &c["onSurface"] },
+        "brightBlack": c["outline"],
+        "white": if dark { &c["onSurfaceVariant"] } else { &c["surfaceContainerHighest"] },
+        "brightWhite": if dark { &c["onSurface"] } else { &c["surfaceContainerLowest"] },
+    });
+    let m = scheme.as_object_mut().expect("object literal");
     for (n, _, _) in CUSTOM {
-        put(wt(n), &c[n]);
+        m.insert(wt(n).into(), c[n].clone().into());
     }
     for (n, _, _) in CUSTOM {
-        put(format!("bright{}", capitalize(&wt(n))), &c[&format!("{n}Bright")]);
+        m.insert(format!("bright{}", capitalize(wt(n))), c[&format!("{n}Bright")].clone().into());
     }
-    Value::Object(m)
+    scheme
 }
 
 fn wt_theme(c: &Colors, dark: bool) -> Value {
@@ -281,12 +274,7 @@ fn ansi_rgb(hex: &str) -> String {
 fn mix(fg: &str, bg: &str, amount: f64) -> String {
     let (f, b) = (rgb(fg), rgb(bg));
     let ch = |i: usize| (f64::from(f[i]) * amount + f64::from(b[i]) * (1.0 - amount)).round_ties_even() as u8;
-    format!("#{:02X}{:02X}{:02X}", ch(0), ch(1), ch(2))
-}
-
-fn capitalize(s: &str) -> String {
-    let mut chars = s.chars();
-    chars.next().map(|f| f.to_uppercase().chain(chars.flat_map(char::to_lowercase)).collect()).unwrap_or_default()
+    hexcolor(material_colors::color::Rgb::new(ch(0), ch(1), ch(2)))
 }
 
 pub fn to_json(v: &Value, indent: usize) -> String {
@@ -318,6 +306,6 @@ pub fn write_if_changed(path: &Path, text: &str) -> Result<bool> {
     Ok(true)
 }
 
-pub fn home() -> PathBuf {
-    PathBuf::from(std::env::var_os("USERPROFILE").unwrap_or_default())
+fn home() -> PathBuf {
+    std::env::home_dir().unwrap_or_default()
 }

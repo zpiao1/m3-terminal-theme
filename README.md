@@ -66,8 +66,10 @@ from the terminal settings.
 Every "UI element -> M3 role" choice (statusline pills, prompt, PSReadLine
 syntax, selection, WT scheme) is in the tables at the top of `m3sync/src/targets.rs`;
 the profile, statusline and cmd prompt only render generated values.
-`~/.config/m3-theme/palette.json` caches the last palette by wallpaper mtime,
-so a light/dark flip or a login with an unchanged wallpaper skips the rebuild.
+`~/.config/m3-theme/palette.json` caches the wallpaper's source colour by file
+mtime, so a light/dark flip or a login with an unchanged wallpaper skips the
+decode + quantize; the schemes are always rebuilt from it (a few ms), so a role
+table change takes effect without invalidating anything.
 
 Dark-mode `primaryContainer` follows Google's 2026-07-06 Expressive update
 (darker than the original 2025 spec). The quantizer is deterministic; Google's

@@ -136,10 +136,16 @@ pub fn hexcolor(c: Rgb) -> String {
     format!("#{:02X}{:02X}{:02X}", c.red, c.green, c.blue)
 }
 
-/// '#RRGGBB' -> (r, g, b).
+/// '#RRGGBB' -> (r, g, b). Only ever given hexcolor() output.
 pub fn rgb(hex: &str) -> [u8; 3] {
-    let channel = |i: usize| u8::from_str_radix(hex.get(i..i + 2).unwrap_or("00"), 16).unwrap_or(0);
-    [channel(1), channel(3), channel(5)]
+    let c: Rgb = hex.parse().unwrap_or_default();
+    [c.red, c.green, c.blue]
+}
+
+/// "magenta" -> "Magenta".
+pub fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    chars.next().map(|f| f.to_uppercase().chain(chars).collect()).unwrap_or_default()
 }
 
 /// Semantic hue -> TonalPalette, harmonized toward the source (mode-independent).
@@ -159,7 +165,7 @@ fn scheme(source: Rgb, dark: bool, customs: &[(&str, TonalPalette)]) -> Colors {
     let (normal, bright) = ansi_tones(dark);
     let (fixed, on_fixed) = FIXED_TONES;
     for (name, pal) in customs {
-        let cap = format!("{}{}", name[..1].to_uppercase(), &name[1..]);
+        let cap = capitalize(name);
         colors.insert(name.to_string(), hexcolor(pal.tone(normal)));
         colors.insert(format!("{name}Bright"), hexcolor(pal.tone(bright)));
         colors.insert(format!("{name}Fixed"), hexcolor(pal.tone(fixed)));
@@ -175,8 +181,4 @@ pub fn from_source(source: Rgb) -> Palette {
         dark: scheme(source, true, &customs),
         light: scheme(source, false, &customs),
     }
-}
-
-pub fn build(path: &Path) -> Palette {
-    from_source(source_color(path))
 }
