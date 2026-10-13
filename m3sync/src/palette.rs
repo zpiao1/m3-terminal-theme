@@ -27,7 +27,7 @@ use material_colors::score::Score;
 
 /// What Android downsamples to; plenty for quantizing.
 const SAMPLE_SIZE: u32 = 256;
-const FALLBACK_SOURCE: Rgb = Rgb::from_u32(0x4285F4);
+pub const FALLBACK_SOURCE: Rgb = Rgb::from_u32(0x4285F4);
 
 /// Role name -> '#RRGGBB', in a stable order (it is written out as JSON).
 pub type Colors = IndexMap<String, String>;
@@ -113,23 +113,22 @@ pub fn wallpaper_path() -> PathBuf {
     Path::new(&appdata).join(r"Microsoft\Windows\Themes\TranscodedWallpaper")
 }
 
-/// The top-scoring colour in the wallpaper.
-pub fn source_color(path: &Path) -> Rgb {
-    let Some(pixels) = sample(path) else {
-        return FALLBACK_SOURCE;
-    };
+/// The top-scoring colour in the wallpaper (FALLBACK_SOURCE if nothing in it
+/// scores), or why the image could not be read.
+pub fn source_color(path: &Path) -> Result<Rgb, String> {
+    let pixels = sample(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let quantized = QuantizerCelebi::quantize(&pixels, 128);
-    Score::score(&quantized.color_to_count, None, Some(FALLBACK_SOURCE), None)
+    Ok(Score::score(&quantized.color_to_count, None, Some(FALLBACK_SOURCE), None)
         .first()
         .copied()
-        .unwrap_or(FALLBACK_SOURCE)
+        .unwrap_or(FALLBACK_SOURCE))
 }
 
-fn sample(path: &Path) -> Option<Vec<Rgb>> {
+fn sample(path: &Path) -> image::ImageResult<Vec<Rgb>> {
     // TranscodedWallpaper has no extension; sniff the format from the bytes.
-    let img = image::ImageReader::open(path).ok()?.with_guessed_format().ok()?.decode().ok()?;
+    let img = image::ImageReader::open(path)?.with_guessed_format()?.decode()?;
     let small = img.thumbnail(SAMPLE_SIZE, SAMPLE_SIZE).to_rgb8();
-    Some(small.pixels().map(|p| Rgb::new(p[0], p[1], p[2])).collect())
+    Ok(small.pixels().map(|p| Rgb::new(p[0], p[1], p[2])).collect())
 }
 
 pub fn hexcolor(c: Rgb) -> String {
@@ -180,5 +179,24 @@ pub fn from_source(source: Rgb) -> Palette {
         source: hexcolor(source),
         dark: scheme(source, true, &customs),
         light: scheme(source, false, &customs),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// tt-keyboard-sync's source.rs has the same test with the same expected
+    /// colour: the keyboard must pick exactly the terminal's source colour.
+    #[test]
+    fn source_color_matches_tt_keyboard_sync() {
+        let path = std::env::temp_dir().join(format!("m3sync-source-{}.png", std::process::id()));
+        image::RgbImage::from_fn(300, 200, |x, y| image::Rgb([(x * 255 / 299) as u8, (y * 255 / 199) as u8, 160]))
+            .save(&path)
+            .unwrap();
+        let got = source_color(&path).map(hexcolor);
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(got.as_deref(), Ok("#EB17A0"));
+        assert!(source_color(Path::new("no such wallpaper")).is_err());
     }
 }

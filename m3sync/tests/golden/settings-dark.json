@@ -1,0 +1,108 @@
+{
+    "copyOnSelect": true,
+    "profiles": {
+        "defaults": {
+            "font": {
+                "face": "Cascadia Code"
+            },
+            "colorScheme": {
+                "dark": "Material You Dark",
+                "light": "Material You Light"
+            }
+        },
+        "list": [
+            {
+                "name": "PowerShell"
+            }
+        ]
+    },
+    "schemes": [
+        {
+            "name": "Campbell",
+            "background": "#0C0C0C"
+        },
+        {
+            "name": "Material You Dark",
+            "background": "#001111",
+            "foreground": "#C2EEED",
+            "cursorColor": "#98ECDF",
+            "selectionBackground": "#2F240C",
+            "black": "#002B2B",
+            "brightBlack": "#537D7C",
+            "white": "#88B3B2",
+            "brightWhite": "#C2EEED",
+            "red": "#FFAD8D",
+            "green": "#61D78F",
+            "yellow": "#DBC100",
+            "blue": "#88C7FF",
+            "purple": "#E0AEFF",
+            "cyan": "#46D5CF",
+            "brightRed": "#FFD3C4",
+            "brightGreen": "#7EF4A9",
+            "brightYellow": "#F9DD1C",
+            "brightBlue": "#C2E0FF",
+            "brightPurple": "#F0D2FF",
+            "brightCyan": "#69F1EB"
+        },
+        {
+            "name": "Material You Light",
+            "background": "#E3FFFE",
+            "foreground": "#003939",
+            "cursorColor": "#006B61",
+            "selectionBackground": "#FCDFA6",
+            "black": "#003939",
+            "brightBlack": "#488484",
+            "white": "#B0EEEC",
+            "brightWhite": "#FFFFFF",
+            "red": "#AE3E00",
+            "green": "#00723F",
+            "yellow": "#716300",
+            "blue": "#0068A0",
+            "purple": "#8349AB",
+            "cyan": "#006F6C",
+            "brightRed": "#872E00",
+            "brightGreen": "#00572F",
+            "brightYellow": "#564B00",
+            "brightBlue": "#004F7C",
+            "brightPurple": "#6A2F91",
+            "brightCyan": "#005552"
+        }
+    ],
+    "theme": "Material You Dark",
+    "themes": [
+        {
+            "name": "Material You Dark",
+            "window": {
+                "applicationTheme": "dark",
+                "frame": "#8ADED1",
+                "unfocusedFrame": "#002B2B"
+            },
+            "tabRow": {
+                "background": "#001E1D",
+                "unfocusedBackground": "#001717"
+            },
+            "tab": {
+                "background": "terminalBackground",
+                "unfocusedBackground": "#002424",
+                "showCloseButton": "hover"
+            }
+        },
+        {
+            "name": "Material You Light",
+            "window": {
+                "applicationTheme": "light",
+                "frame": "#006B61",
+                "unfocusedFrame": "#B0EEEC"
+            },
+            "tabRow": {
+                "background": "#C8F7F5",
+                "unfocusedBackground": "#D3FBFA"
+            },
+            "tab": {
+                "background": "terminalBackground",
+                "unfocusedBackground": "#BCF2F1",
+                "showCloseButton": "hover"
+            }
+        }
+    ]
+}

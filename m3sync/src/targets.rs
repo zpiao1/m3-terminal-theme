@@ -309,3 +309,6 @@ pub fn write_if_changed(path: &Path, text: &str) -> Result<bool> {
 fn home() -> PathBuf {
     std::env::home_dir().unwrap_or_default()
 }
+
+#[cfg(test)]
+mod golden;

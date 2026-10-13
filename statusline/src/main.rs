@@ -4,6 +4,10 @@
 //!
 //! Reads the status JSON on stdin, the palette m3sync writes to
 //! ~/.config/m3-theme/statusline.json, and the branch straight from .git/HEAD.
+#![forbid(unsafe_code)]
+
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -151,10 +155,10 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
     // 2. Git branch
     if let Some(cwd) = cwd {
         let dir = native_path(cwd);
-        if dir.is_dir() {
-            if let Some(branch) = git_branch(&dir).filter(|b| !b.is_empty() && b != "HEAD") {
-                segments.push(("BRANCH", format!("  {} ", cap(&branch))));
-            }
+        if dir.is_dir()
+            && let Some(branch) = git_branch(&dir).filter(|b| !b.is_empty() && b != "HEAD")
+        {
+            segments.push(("BRANCH", format!("  {} ", cap(&branch))));
         }
     }
 

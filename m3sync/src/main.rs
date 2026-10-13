@@ -7,6 +7,9 @@
 //!     m3sync --preview  print the palette without writing anything
 //!     m3sync --log FILE append log lines to FILE
 #![windows_subsystem = "windows"]
+// Only win.rs may use unsafe (for Win32 calls), and every block there says why it is sound.
+#![deny(unsafe_code)]
+#![warn(clippy::undocumented_unsafe_blocks)]
 
 mod palette;
 mod targets;
@@ -60,7 +63,11 @@ fn main() {
     let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1));
 
     if flag("--preview") {
-        preview(&palette::from_source(palette::source_color(&palette::wallpaper_path())));
+        let source = palette::source_color(&palette::wallpaper_path()).unwrap_or_else(|e| {
+            eprintln!("{e}; showing the fallback colour");
+            palette::FALLBACK_SOURCE
+        });
+        preview(&palette::from_source(source));
         return;
     }
     if flag("--help") || flag("-h") {
@@ -118,7 +125,8 @@ struct Sync {
     targets: Targets,
     /// The wallpaper's source colour and the mtime (ns) it was taken at. A
     /// light/dark flip only re-renders, and a login with an unchanged
-    /// wallpaper skips the decode + quantize entirely.
+    /// wallpaper skips the decode + quantize entirely. A wallpaper that could
+    /// not be read is shown as the fallback but never stored here.
     source: Option<(u64, Rgb)>,
     last: Option<(Option<u64>, bool)>,
 }
@@ -135,17 +143,26 @@ impl Sync {
             return;
         }
         let t0 = Instant::now();
-        if mtime.is_none() || self.source.map(|s| s.0) != mtime {
+        let mut source = self.source.filter(|s| Some(s.0) == mtime).map(|s| s.1);
+        if source.is_none() {
             wait_for_settle(); // Windows writes the file in bursts
             mtime = wallpaper_mtime();
-            let source = (mtime.unwrap_or(0), palette::source_color(&palette::wallpaper_path()));
-            let cache = json!({"generator": CACHE_GENERATOR, "mtime_ns": source.0, "source": palette::hexcolor(source.1)});
-            let _ = targets::write_if_changed(&self.targets.cache_path(), &(targets::to_json(&cache, 2) + "\n"));
-            self.source = Some(source);
+            match palette::source_color(&palette::wallpaper_path()) {
+                Ok(color) => {
+                    let at = mtime.unwrap_or(0);
+                    let cache = json!({"generator": CACHE_GENERATOR, "mtime_ns": at, "source": palette::hexcolor(color)});
+                    let _ = targets::write_if_changed(&self.targets.cache_path(), &(targets::to_json(&cache, 2) + "\n"));
+                    self.source = Some((at, color));
+                    source = Some(color);
+                }
+                // Possibly half-written: show the fallback, but leave `last`
+                // unset so the next notification or re-check reads it again.
+                Err(e) => log.line(&format!("wallpaper unreadable ({e}); using the fallback colour")),
+            }
         }
-        let pal = palette::from_source(self.source.expect("filled above").1);
+        let pal = palette::from_source(source.unwrap_or(palette::FALLBACK_SOURCE));
         let changed = self.targets.apply(&pal, dark); // also creates the output dir
-        self.last = Some((mtime, dark));
+        self.last = source.is_some().then_some((mtime, dark));
         log.line(&format!(
             "{reason:<9} source {} {}  {:.2}s  updated: {}",
             pal.source,
