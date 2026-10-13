@@ -17,7 +17,8 @@ fn check(name: &str, actual: &str) {
         std::fs::write(&path, actual).unwrap();
         return;
     }
-    let expected = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e} (UPDATE_GOLDEN=1 creates it)", path.display()));
+    let expected = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{}: {e} (UPDATE_GOLDEN=1 creates it)", path.display()));
     assert!(expected == actual, "{name} differs from its golden file; UPDATE_GOLDEN=1 to accept");
 }
 
@@ -32,7 +33,10 @@ fn scratch(name: &str) -> PathBuf {
 fn palettes() {
     for source in SOURCES {
         let pal = from_source(Rgb::from_u32(source));
-        check(&format!("palette-{source:06X}.json"), &(to_json(&json!({"dark": pal.dark, "light": pal.light}), 2) + "\n"));
+        check(
+            &format!("palette-{source:06X}.json"),
+            &(to_json(&json!({"dark": pal.dark, "light": pal.light}), 2) + "\n"),
+        );
     }
 }
 
@@ -74,7 +78,9 @@ fn terminal_settings_merge() {
     let dark = std::fs::read_to_string(&path).unwrap();
     check("settings-dark.json", &dark);
     let v: Value = serde_json::from_str(&dark).unwrap();
-    let names = |key: &str| v[key].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    let names = |key: &str| {
+        v[key].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>()
+    };
     assert_eq!(names("schemes"), ["Campbell", "Material You Dark", "Material You Light"]);
     assert_eq!(names("themes"), ["Material You Dark", "Material You Light"]);
     assert_eq!(v["profiles"]["defaults"]["font"]["face"], "Cascadia Code");

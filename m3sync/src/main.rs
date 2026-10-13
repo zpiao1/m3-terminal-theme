@@ -150,8 +150,10 @@ impl Sync {
             match palette::source_color(&palette::wallpaper_path()) {
                 Ok(color) => {
                     let at = mtime.unwrap_or(0);
-                    let cache = json!({"generator": CACHE_GENERATOR, "mtime_ns": at, "source": palette::hexcolor(color)});
-                    let _ = targets::write_if_changed(&self.targets.cache_path(), &(targets::to_json(&cache, 2) + "\n"));
+                    let cache =
+                        json!({"generator": CACHE_GENERATOR, "mtime_ns": at, "source": palette::hexcolor(color)});
+                    let _ =
+                        targets::write_if_changed(&self.targets.cache_path(), &(targets::to_json(&cache, 2) + "\n"));
                     self.source = Some((at, color));
                     source = Some(color);
                 }
@@ -204,7 +206,11 @@ fn load_cache(path: &Path) -> Option<(u64, Rgb)> {
 fn preview(pal: &Palette) {
     let swatch = |hex: &str, label: &str| {
         let [r, g, b] = palette::rgb(hex);
-        let fg = if u32::from(r) * 299 + u32::from(g) * 587 + u32::from(b) * 114 > 128_000 { "0;0;0" } else { "255;255;255" };
+        let fg = if u32::from(r) * 299 + u32::from(g) * 587 + u32::from(b) * 114 > 128_000 {
+            "0;0;0"
+        } else {
+            "255;255;255"
+        };
         format!("\x1b[48;2;{r};{g};{b}m\x1b[38;2;{fg}m {:<22}\x1b[0m", format!("{label} {hex}"))
     };
     println!("source {}", pal.source);

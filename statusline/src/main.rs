@@ -44,10 +44,7 @@ fn main() {
 /// Native home directory. Under Git Bash, MSYS hands native children HOME
 /// already converted to C:\Users\...; USERPROFILE covers a launch without bash.
 fn home_dir() -> PathBuf {
-    std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from)
-        .unwrap_or_default()
+    std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from).unwrap_or_default()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -81,8 +78,7 @@ fn load_palette(path: &Path) -> Palette {
             .collect(),
         sep: "150;150;150".into(),
     };
-    let Some(json) = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
-    else {
+    let Some(json) = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
         return p;
     };
     // The values land inside escape sequences, so only accept the r;g;b shape
@@ -102,8 +98,7 @@ fn load_palette(path: &Path) -> Palette {
 
 fn is_rgb(v: &str) -> bool {
     let parts: Vec<&str> = v.split(';').collect();
-    parts.len() == 3
-        && parts.iter().all(|p| (1..=3).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_digit()))
+    parts.len() == 3 && parts.iter().all(|p| (1..=3).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_digit()))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -168,9 +163,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         model.push_str("·1M");
     }
     // Live session effort (reflects /effort changes); fall back to settings default
-    let effort = text(json, &["effort", "level"])
-        .map(str::to_string)
-        .or_else(|| settings_effort(home));
+    let effort = text(json, &["effort", "level"]).map(str::to_string).or_else(|| settings_effort(home));
     if let Some(effort) = effort {
         model = format!("{model} · {effort}");
     }
@@ -195,12 +188,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         let full = (halves / 2).max(0) as usize;
         let half = halves % 2 == 1;
         let rest = 10usize.saturating_sub(full + half as usize);
-        let bar = format!(
-            "{}{}{ESC}[38;2;{track}m{}",
-            "━".repeat(full),
-            if half { "╸" } else { "" },
-            "━".repeat(rest)
-        );
+        let bar = format!("{}{}{ESC}[38;2;{track}m{}", "━".repeat(full), if half { "╸" } else { "" }, "━".repeat(rest));
         segments.push((seg, format!(" {bar}{ESC}[38;2;{ink}m {shown}% ")));
     }
 
@@ -220,9 +208,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         let bg = bg.as_str();
         match prev_bg {
             None => out.push_str(&format!("{RST}{ESC}[38;2;{bg}m{ROUND_L}{ESC}[48;2;{bg}m")),
-            Some(p) if p == bg => {
-                out.push_str(&format!("{RST}{ESC}[48;2;{bg}m{ESC}[38;2;{}m{SEP_THIN}", pal.sep))
-            }
+            Some(p) if p == bg => out.push_str(&format!("{RST}{ESC}[48;2;{bg}m{ESC}[38;2;{}m{SEP_THIN}", pal.sep)),
             Some(p) => out.push_str(&format!("{RST}{ESC}[38;2;{p}m{ESC}[48;2;{bg}m{ARROW}")),
         }
         out.push_str(&format!("{ESC}[38;2;{fg}m{BOLD}{content}{RST}"));

@@ -159,7 +159,8 @@ fn custom_palettes(source: Rgb) -> Vec<(&'static str, TonalPalette)> {
 }
 
 fn scheme(source: Rgb, dark: bool, customs: &[(&str, TonalPalette)]) -> Colors {
-    let s = SchemeExpressive::with_spec(Hct::new(source), dark, Some(0.0), SpecVersion::Spec2025, Platform::Phone).scheme;
+    let s =
+        SchemeExpressive::with_spec(Hct::new(source), dark, Some(0.0), SpecVersion::Spec2025, Platform::Phone).scheme;
     let mut colors: Colors = ROLES.iter().map(|(role, get)| (role.to_string(), hexcolor(get(&s)))).collect();
     let (normal, bright) = ansi_tones(dark);
     let (fixed, on_fixed) = FIXED_TONES;
@@ -175,11 +176,7 @@ fn scheme(source: Rgb, dark: bool, customs: &[(&str, TonalPalette)]) -> Colors {
 
 pub fn from_source(source: Rgb) -> Palette {
     let customs = custom_palettes(source);
-    Palette {
-        source: hexcolor(source),
-        dark: scheme(source, true, &customs),
-        light: scheme(source, false, &customs),
-    }
+    Palette { source: hexcolor(source), dark: scheme(source, true, &customs), light: scheme(source, false, &customs) }
 }
 
 #[cfg(test)]

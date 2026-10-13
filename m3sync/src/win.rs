@@ -13,16 +13,19 @@ use std::sync::mpsc::Sender;
 
 use windows_sys::Win32::Foundation::{CloseHandle, ERROR_SUCCESS, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_LAST_WRITE, FindCloseChangeNotification, FindFirstChangeNotificationW,
-    FindNextChangeNotification,
+    FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_LAST_WRITE, FindCloseChangeNotification,
+    FindFirstChangeNotificationW, FindNextChangeNotification,
 };
 use windows_sys::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE};
 use windows_sys::Win32::System::Registry::{
-    HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, REG_SZ, RRF_NOEXPAND, RRF_RT_DWORD, RRF_RT_REG_EXPAND_SZ,
-    RRF_RT_REG_SZ, RegCloseKey, RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW, RegSetKeyValueW,
+    HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, REG_SZ, RRF_NOEXPAND, RRF_RT_DWORD,
+    RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ, RegCloseKey, RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW,
+    RegSetKeyValueW,
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, INFINITE, WaitForSingleObject};
-use windows_sys::Win32::UI::WindowsAndMessaging::{HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE};
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE,
+};
 
 pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 const ENVIRONMENT_KEY: &str = "Environment";
@@ -167,7 +170,11 @@ pub fn watch_directory(dir: &Path, tx: Sender<()>) -> Result<(), String> {
     // SAFETY: the path is a NUL-terminated temporary that outlives the call.
     let handle = unsafe { FindFirstChangeNotificationW(wide(dir).as_ptr(), 0, filter) };
     if handle == INVALID_HANDLE_VALUE {
-        return Err(format!("FindFirstChangeNotificationW({}) failed: {}", dir.display(), std::io::Error::last_os_error()));
+        return Err(format!(
+            "FindFirstChangeNotificationW({}) failed: {}",
+            dir.display(),
+            std::io::Error::last_os_error()
+        ));
     }
     let handle = handle as usize;
     // SAFETY: the watcher thread owns `handle` and calls this before `close`.
@@ -223,7 +230,14 @@ mod tests {
         let data = value.to_le_bytes();
         // SAFETY: NUL-terminated names; `data` is the 4 bytes passed.
         let rc = unsafe {
-            RegSetKeyValueW(HKEY_CURRENT_USER, wide(KEY).as_ptr(), wide("v").as_ptr(), windows_sys::Win32::System::Registry::REG_DWORD, data.as_ptr().cast(), 4)
+            RegSetKeyValueW(
+                HKEY_CURRENT_USER,
+                wide(KEY).as_ptr(),
+                wide("v").as_ptr(),
+                windows_sys::Win32::System::Registry::REG_DWORD,
+                data.as_ptr().cast(),
+                4,
+            )
         };
         assert_eq!(rc, ERROR_SUCCESS);
     }
