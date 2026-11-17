@@ -1,0 +1,2 @@
+// Lowest-numbered icon resource = the exe's icon in Explorer/Task Manager.
+1 ICON "icon.ico"
