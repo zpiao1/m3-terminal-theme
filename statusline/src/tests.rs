@@ -16,6 +16,33 @@ fn grey() -> Palette {
     load_palette(Path::new("no such palette"))
 }
 
+fn state_palette() -> Palette {
+    let dir = scratch("state-palette");
+    let path = dir.join("statusline.json");
+    std::fs::write(
+        &path,
+        json!({
+            "pills": {
+                "DIR": {"bg": "1;1;1", "fg": "10;10;10", "track": "20;20;20"},
+                "BRANCH": {"bg": "2;2;2", "fg": "10;10;10", "track": "20;20;20"},
+                "MODEL": {"bg": "3;3;3", "fg": "10;10;10", "track": "20;20;20"},
+                "COST": {"bg": "4;4;4", "fg": "10;10;10", "track": "20;20;20"},
+                "CTX": {"bg": "5;5;5", "fg": "10;10;10", "track": "20;20;20"},
+                "5H": {"bg": "6;6;6", "fg": "10;10;10", "track": "20;20;20"},
+                "7D": {"bg": "7;7;7", "fg": "10;10;10", "track": "20;20;20"},
+                "WARN": {"bg": "8;8;8", "fg": "10;10;10", "track": "20;20;20"},
+                "DANGER": {"bg": "9;9;9", "fg": "10;10;10", "track": "20;20;20"}
+            },
+            "sep": "150;150;150"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let pal = load_palette(&path);
+    let _ = std::fs::remove_dir_all(&dir);
+    pal
+}
+
 #[test]
 fn msys_and_native_paths_round_trip() {
     assert_eq!(native_path("/c/Users/x"), PathBuf::from("C:/Users/x"));
@@ -156,4 +183,243 @@ fn render_minimal_and_full() {
     assert!(out.contains(&format!("━━━━━━{ESC}[38;2;115;115;115m━━━━{ESC}")), "{out:?}");
     // Same grey on every pill, so neighbours are joined by the thin separator.
     assert!(out.contains(SEP_THIN) && !out.contains(ARROW));
+}
+
+#[test]
+fn agy_antigravity_skips_claude_settings_effort() {
+    let pal = grey();
+    let home = scratch("agy-home");
+    std::fs::create_dir_all(home.join(".claude")).unwrap();
+    std::fs::write(home.join(".claude").join("settings.json"), r#"{"effortLevel": "high"}"#).unwrap();
+
+    let agy_out = render(
+        &json!({
+            "product": "antigravity",
+            "model": {"id": "orchestrator-carbon", "display_name": "Orchestrator (Carbon)"}
+        }),
+        &home,
+        &pal,
+    );
+    assert!(agy_out.contains("Orchestrator (Carbon)"), "{agy_out:?}");
+    assert!(!agy_out.contains(" · high"), "{agy_out:?}");
+
+    let cc_out = render(&json!({"model": {"display_name": "Opus 5.5"}}), &home, &pal);
+    assert!(cc_out.contains("Opus 5.5 · high"), "{cc_out:?}");
+
+    let _ = std::fs::remove_dir_all(&home);
+}
+
+#[test]
+fn agy_model_and_effort_normalization() {
+    let pal = grey();
+    let home = Path::new(r"C:\Users\x");
+
+    let cases = [
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"id": "gemini-4-carbon", "display_name": "Gemini 4 Carbon (High)", "effort": "high"}
+            }),
+            "  Gemini 4 Carbon · high ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"id": "hydrogen-l-tf-xhigh", "display_name": "Gemini 4 Hydrogen (XHigh)", "effort": "xhigh"}
+            }),
+            "  Gemini 4 Hydrogen · xhigh ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"id": "gpt-oss-120b", "display_name": "GPT-OSS 120B (Medium)"}
+            }),
+            "  GPT-OSS 120B · medium ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"id": "orchestrator-carbon", "display_name": "Orchestrator (Carbon)"}
+            }),
+            "  Orchestrator (Carbon) ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"id": "claude-opus-5-5[1m]", "display_name": "Claude Opus 5.5 (Medium)"}
+            }),
+            "  Claude Opus 5.5·1M · medium ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"display_name": "Model (MAX)"},
+            }),
+            "  Model · max ",
+        ),
+        (
+            json!({
+                "product": "antigravity",
+                "model": {"display_name": "Gemini 4 Carbon (High)", "effort": "low"},
+                "effort": {"level": "xhigh"}
+            }),
+            "  Gemini 4 Carbon · xhigh ",
+        ),
+    ];
+
+    for (payload, expected) in cases {
+        let out = render(&payload, home, &pal);
+        assert!(out.contains(expected), "expected {expected:?} in {out:?} for {payload}");
+    }
+}
+
+#[test]
+fn agy_cost_total_usd_and_thresholds() {
+    let pal = state_palette();
+    let home = Path::new(r"C:\Users\x");
+
+    let normal = render(&json!({"cost": {"total_usd": 4.99}}), home, &pal);
+    assert!(normal.contains("48;2;4;4;4m") && normal.contains(" $4.99 "), "{normal:?}");
+
+    let warn = render(&json!({"cost": {"total_usd": 5.0}}), home, &pal);
+    assert!(warn.contains("48;2;8;8;8m") && warn.contains(" $5.00 "), "{warn:?}");
+
+    let danger = render(&json!({"cost": {"total_usd": 15.0}}), home, &pal);
+    assert!(danger.contains("48;2;9;9;9m") && danger.contains(" $15.00 "), "{danger:?}");
+
+    // total_cost_usd takes precedence over total_usd.
+    let both = render(&json!({"cost": {"total_cost_usd": 1.25, "total_usd": 99.0}}), home, &pal);
+    assert!(both.contains(" $1.25 ") && !both.contains("99.00"), "{both:?}");
+}
+
+#[test]
+fn agy_quota_pools_disabled_clamping_and_states() {
+    let pal = state_palette();
+    let home = Path::new(r"C:\Users\x");
+
+    let quota = json!({
+        "gemini-5h": {"remaining_fraction": 0.9178, "reset_time": "2026-11-17T18:00:00Z", "disabled": false},
+        "gemini-weekly": {"remaining_fraction": 0.5, "disabled": false},
+        "3p-5h": {"remaining_fraction": 0.2, "disabled": false},
+        "3p-weekly": {"remaining_fraction": 0.1, "disabled": true}
+    });
+
+    // Gemini model selects gemini-* and skips 3p-*, hitting normal 5H (8%) and WARN 7D (50%).
+    let gemini = render(
+        &json!({
+            "product": "antigravity",
+            "model": {"id": "gemini-4-carbon", "display_name": "Gemini 4 Carbon (High)"},
+            "quota": quota
+        }),
+        home,
+        &pal,
+    );
+    assert!(gemini.contains("48;2;6;6;6m") && gemini.contains(" 5h: 8% "), "{gemini:?}");
+    assert!(gemini.contains("48;2;8;8;8m") && gemini.contains(" 7d: 50% "), "{gemini:?}");
+
+    // Orchestrator uses gemini pool.
+    let orch = render(
+        &json!({
+            "product": "antigravity",
+            "model": {"display_name": "Orchestrator (Carbon)"},
+            "quota": quota
+        }),
+        home,
+        &pal,
+    );
+    assert!(orch.contains(" 5h: 8% ") && orch.contains(" 7d: 50% "), "{orch:?}");
+
+    // 3P models select 3p-*; disabled 3p-weekly is skipped; 3p-5h at 80% is DANGER.
+    for model in [
+        json!({"id": "Fable-5.1"}),
+        json!({"id": "opus-5.5"}),
+        json!({"id": "Sonnet-4"}),
+        json!({"id": "3p-custom"}),
+        json!({"display_name": "Claude Opus 5.5 (Medium)"}),
+        json!({"display_name": "GPT-OSS 120B (Medium)"}),
+    ] {
+        let out = render(&json!({"model": model, "quota": quota}), home, &pal);
+        assert!(out.contains("48;2;9;9;9m") && out.contains(" 5h: 80% "), "model={model}: {out:?}");
+        assert!(!out.contains("7d:"), "disabled 3p-weekly must be skipped: {out:?}");
+    }
+
+    // Gemini model never falls back to 3p-5h when gemini-5h is absent.
+    let no_gemini_5h = render(
+        &json!({
+            "model": {"id": "gemini-4-carbon"},
+            "quota": {"3p-5h": {"remaining_fraction": 0.1, "disabled": false}}
+        }),
+        home,
+        &pal,
+    );
+    assert!(!no_gemini_5h.contains("5h:"), "{no_gemini_5h:?}");
+
+    // Empty/absent model tries gemini-* first, then 3p-*.
+    let fallback_to_3p = render(
+        &json!({
+            "quota": {
+                "gemini-5h": {"remaining_fraction": 0.9, "disabled": true},
+                "3p-5h": {"remaining_fraction": 0.4, "disabled": false},
+                "gemini-weekly": {"remaining_fraction": 0.7, "disabled": false}
+            }
+        }),
+        home,
+        &pal,
+    );
+    assert!(fallback_to_3p.contains(" 5h: 60% ") && fallback_to_3p.contains(" 7d: 30% "), "{fallback_to_3p:?}");
+
+    // Out-of-range remaining_fraction is clamped to [0, 100].
+    let clamped = render(
+        &json!({
+            "model": {"id": "gemini-4-carbon"},
+            "quota": {
+                "gemini-5h": {"remaining_fraction": -0.25, "disabled": false},
+                "gemini-weekly": {"remaining_fraction": 1.25, "disabled": false}
+            }
+        }),
+        home,
+        &pal,
+    );
+    assert!(clamped.contains(" 5h: 100% ") && clamped.contains(" 7d: 0% "), "{clamped:?}");
+}
+
+#[test]
+fn workspace_current_dir_fallback_for_dir_and_branch() {
+    let pal = grey();
+    let home = Path::new(r"C:\Users\x");
+    let repo = scratch("ws-fallback");
+    let git = repo.join(".git");
+    std::fs::create_dir_all(git.join("refs/heads/feat")).unwrap();
+    std::fs::write(git.join("HEAD"), "ref: refs/heads/feat/agy\n").unwrap();
+    std::fs::write(git.join("refs/heads/feat/agy"), "0000000000000000000000000000000000000000\n").unwrap();
+
+    for payload in [
+        json!({
+            "product": "antigravity",
+            "cwd": "",
+            "workspace": {"current_dir": repo.to_string_lossy(), "project_dir": repo.to_string_lossy()}
+        }),
+        json!({
+            "product": "antigravity",
+            "workspace": {"current_dir": repo.to_string_lossy(), "project_dir": repo.to_string_lossy()}
+        }),
+    ] {
+        let out = render(&payload, home, &pal);
+        let expected_name = repo.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(out.contains(&cap(&expected_name)), "{out:?}");
+        assert!(out.contains("feat/agy"), "{out:?}");
+    }
+
+    // Non-empty cwd takes precedence over workspace.current_dir.
+    let cwd_wins = render(
+        &json!({
+            "cwd": "/c/Users/x/explicit",
+            "workspace": {"current_dir": "/c/Users/x/fallback"}
+        }),
+        home,
+        &pal,
+    );
+    assert!(cwd_wins.contains("~/explicit") && !cwd_wins.contains("fallback"), "{cwd_wins:?}");
+
+    let _ = std::fs::remove_dir_all(&repo);
 }

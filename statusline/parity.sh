@@ -76,5 +76,43 @@ check "invalid json" '{"cwd":'
 mkdir -p "$fx/home"
 HOME="$fx/home" check "no palette" "{\"cwd\":\"$fx/loose\",$model}"
 
+# Antigravity CLI (agy) schema cases
+mkdir -p "$fx/home/.claude"
+printf '{"effortLevel":"medium"}\n' > "$fx/home/.claude/settings.json"
+HOME="$fx/home" check "agy ignores claude settings effortLevel" '{"product":"antigravity","model":{"id":"orchestrator-carbon","display_name":"Orchestrator (Carbon)"}}'
+HOME="$fx/home" check "claude falls back to settings effortLevel" '{"model":{"display_name":"Opus 5.5"}}'
+
+check "agy carbon high" '{"product":"antigravity","model":{"id":"gemini-4-carbon","display_name":"Gemini 4 Carbon (High)","effort":"high"}}'
+check "agy hydrogen xhigh" '{"product":"antigravity","model":{"id":"hydrogen-l-tf-xhigh","display_name":"Gemini 4 Hydrogen (XHigh)","effort":"xhigh"}}'
+check "agy gpt-oss medium no model.effort" '{"product":"antigravity","model":{"id":"gpt-oss-120b","display_name":"GPT-OSS 120B (Medium)"}}'
+check "agy orchestrator flavor parens" '{"product":"antigravity","model":{"id":"orchestrator-argon","display_name":"Orchestrator (Argon)"}}'
+check "agy claude 1m stripped effort" '{"product":"antigravity","model":{"id":"claude-opus-5-5[1m]","display_name":"Claude Opus 5.5 (Medium)"}}'
+check "agy uppercase effort tag" '{"product":"antigravity","model":{"display_name":"Model (MAX)"}}'
+check "agy effort.level overrides model.effort" '{"product":"antigravity","model":{"display_name":"Gemini 4 Carbon (High)","effort":"low"},"effort":{"level":"xhigh"}}'
+
+check "workspace fallback absent cwd" "{\"product\":\"antigravity\",\"workspace\":{\"current_dir\":\"$(win "$fx/loose")\",\"project_dir\":\"$(win "$fx/loose")\"}}"
+check "workspace fallback empty cwd" "{\"product\":\"antigravity\",\"cwd\":\"\",\"workspace\":{\"current_dir\":\"$(win "$fx/loose/a/b/c")\"}}"
+check "cwd beats workspace.current_dir" "{\"cwd\":\"$fx/packed\",\"workspace\":{\"current_dir\":\"$fx/loose\"}}"
+
+for cost in 0 0.0049 1.23 4.99 5 5.001 14.999 15; do
+  check "agy cost.total_usd=$cost" "{\"product\":\"antigravity\",\"cost\":{\"total_usd\":$cost}}"
+done
+check "cost.total_cost_usd beats total_usd" '{"cost":{"total_cost_usd":0,"total_usd":99}}'
+
+quota_all='{"gemini-5h":{"remaining_fraction":0.9178,"disabled":false},"gemini-weekly":{"remaining_fraction":0.5,"disabled":false},"3p-5h":{"remaining_fraction":0.2,"disabled":false},"3p-weekly":{"remaining_fraction":0.1,"disabled":true}}'
+check "agy quota gemini" "{\"product\":\"antigravity\",\"model\":{\"id\":\"gemini-4-carbon\",\"display_name\":\"Gemini 4 Carbon (High)\"},\"quota\":$quota_all}"
+check "agy quota orchestrator" "{\"product\":\"antigravity\",\"model\":{\"display_name\":\"Orchestrator (Carbon)\"},\"quota\":$quota_all}"
+check "agy quota 3p by id" "{\"product\":\"antigravity\",\"model\":{\"id\":\"Fable-5.1\"},\"quota\":$quota_all}"
+check "agy quota 3p by display_name" "{\"product\":\"antigravity\",\"model\":{\"display_name\":\"GPT-OSS 120B (Medium)\"},\"quota\":$quota_all}"
+check "agy quota 3p by opus/sonnet/3p" "{\"model\":{\"id\":\"Sonnet-4.5\"},\"quota\":$quota_all}"
+check "agy quota gemini never shows 3p" '{"model":{"id":"gemini-4-carbon"},"quota":{"3p-5h":{"remaining_fraction":0.1,"disabled":false}}}'
+check "agy quota no model fallback" '{"quota":{"gemini-5h":{"remaining_fraction":0.9,"disabled":true},"3p-5h":{"remaining_fraction":0.4,"disabled":false},"gemini-weekly":{"remaining_fraction":0.875,"disabled":false}}}'
+check "agy quota clamped" '{"model":{"id":"gemini-4-carbon"},"quota":{"gemini-5h":{"remaining_fraction":-0.25,"disabled":false},"gemini-weekly":{"remaining_fraction":1.5,"disabled":false}}}'
+check "agy rate_limits beats quota" "{\"model\":{\"id\":\"gemini-4-carbon\"},\"rate_limits\":{\"five_hour\":{\"used_percentage\":11}},\"quota\":$quota_all}"
+check "agy full realistic payload" "{\"product\":\"antigravity\",\"cwd\":\"$(win "$fx/loose")\",\"workspace\":{\"current_dir\":\"$(win "$fx/loose")\",\"project_dir\":\"$(win "$fx/loose")\"},\"model\":{\"id\":\"gemini-4-carbon\",\"display_name\":\"Gemini 4 Carbon (High)\",\"effort\":\"high\"},\"cost\":{\"total_usd\":6.42},\"context_window\":{\"used_percentage\":54},\"quota\":$quota_all}"
+check "non-object model and cwd" '{"model":"not-an-object","cwd":123,"cost":{"total_usd":1}}'
+check "json null" 'null'
+check "json array" '[1,2,3]'
+
 echo "parity: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
