@@ -1,6 +1,7 @@
-//! Claude Code status line — Material 3 Expressive (wallpaper dynamic colour),
-//! powerline. A port of ../statusline-command.sh that renders byte-identical
-//! output without forking bash, jq or git on every refresh.
+//! Claude Code / Antigravity CLI status line — Material 3 Expressive
+//! (wallpaper dynamic colour), powerline. A port of ../statusline-command.sh
+//! that renders byte-identical output without forking bash, jq or git on every
+//! refresh.
 //!
 //! Reads the status JSON on stdin, the palette m3sync writes to
 //! ~/.config/m3-theme/statusline.json, and the branch straight from .git/HEAD.
@@ -140,7 +141,7 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
     let mut segments: Vec<(&str, String)> = Vec::new();
 
     // 1. Directory
-    let cwd = text(json, &["cwd"]);
+    let cwd = text(json, &["cwd"]).or_else(|| text(json, &["workspace", "current_dir"]));
     let display_cwd = match cwd {
         Some(cwd) => shorten_dir(&tilde(&msys_path(Path::new(cwd)), home)),
         None => "~".to_string(),
@@ -157,13 +158,8 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         }
     }
 
-    // 3. Model + effort - display_name already carries the version ("Opus 5.5")
-    let mut model = text(json, &["model", "display_name"]).unwrap_or("").to_string();
-    if text(json, &["model", "id"]).is_some_and(|id| id.contains("[1m]")) {
-        model.push_str("·1M");
-    }
-    // Live session effort (reflects /effort changes); fall back to settings default
-    let effort = text(json, &["effort", "level"]).map(str::to_string).or_else(|| settings_effort(home));
+    // 3. Model + effort - display_name carries version, and on agy CLI may end with " (<effort>)"
+    let (mut model, effort) = normalize_model_and_effort(json, home);
     if let Some(effort) = effort {
         model = format!("{model} · {effort}");
     }
@@ -171,8 +167,8 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         segments.push(("MODEL", format!("  {model} ")));
     }
 
-    // 4. Cost - session total reported by Claude Code; warn >$5, danger >$15
-    if let Some(cost) = number(json, &["cost", "total_cost_usd"]) {
+    // 4. Cost - session total reported by host; warn >$5, danger >$15
+    if let Some(cost) = number(json, &["cost", "total_cost_usd"]).or_else(|| number(json, &["cost", "total_usd"])) {
         let seg = pick_state((cost * 100.0).floor() as i64, 500, 1500, "COST");
         segments.push((seg, format!(" ${cost:.2} ")));
     }
@@ -192,9 +188,11 @@ fn render(json: &Value, home: &Path, pal: &Palette) -> String {
         segments.push((seg, format!(" {bar}{ESC}[38;2;{ink}m {shown}% ")));
     }
 
-    // 6./7. Rate limits - warn >50%, danger >80%
-    for (key, normal, label) in [("five_hour", "5H", "5h"), ("seven_day", "7D", "7d")] {
-        if let Some(pct) = number(json, &["rate_limits", key, "used_percentage"]) {
+    // 6./7. Rate limits / quota - warn >50%, danger >80%
+    for (key, normal, label, window) in [("five_hour", "5H", "5h", "5h"), ("seven_day", "7D", "7d", "weekly")] {
+        if let Some(pct) =
+            number(json, &["rate_limits", key, "used_percentage"]).or_else(|| quota_used_pct(json, window))
+        {
             let (shown, n) = round_pct(pct);
             segments.push((pick_state(n, 50, 80, normal), format!(" {label}: {shown}% ")));
         }
@@ -280,6 +278,62 @@ fn cap(s: &str) -> String {
     let mut out: String = s.chars().take(MAX_NAME - 1).collect();
     out.push('…');
     out
+}
+
+const EFFORT_TAGS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
+const THREE_P_PREFIXES: [&str; 6] = ["claude", "gpt", "fable", "opus", "sonnet", "3p"];
+
+/// Normalizes `(model_display, effort)` across Claude Code and Antigravity CLI:
+/// strips trailing `" (<effort>)"` tags (keeping non-effort flavor parens like
+/// `"Orchestrator (Carbon)"`), backfills effort from that tag when absent, and
+/// only falls back to `~/.claude/settings.json` outside Antigravity.
+fn normalize_model_and_effort(json: &Value, home: &Path) -> (String, Option<String>) {
+    let mut model = text(json, &["model", "display_name"]).unwrap_or("").to_string();
+    let mut effort = text(json, &["effort", "level"]).or_else(|| text(json, &["model", "effort"])).map(str::to_string);
+
+    if let Some((head, tag)) = model.strip_suffix(')').and_then(|s| s.rsplit_once(" ("))
+        && EFFORT_TAGS.iter().any(|t| tag.eq_ignore_ascii_case(t))
+    {
+        let lower_tag = tag.to_ascii_lowercase();
+        model = head.to_string();
+        if effort.is_none() {
+            effort = Some(lower_tag);
+        }
+    }
+
+    if effort.is_none() && text(json, &["product"]) != Some("antigravity") {
+        effort = settings_effort(home);
+    }
+
+    if text(json, &["model", "id"]).is_some_and(|id| id.contains("[1m]")) {
+        model.push_str("·1M");
+    }
+
+    (model, effort)
+}
+
+fn bucket_used_pct(quota: &Value, key: &str) -> Option<f64> {
+    let bucket = quota.get(key)?;
+    if bucket.get("disabled").and_then(Value::as_bool) == Some(true) {
+        return None;
+    }
+    let rem = bucket.get("remaining_fraction")?.as_f64()?;
+    Some(((1.0 - rem) * 100.0).clamp(0.0, 100.0))
+}
+
+fn quota_used_pct(json: &Value, window: &str) -> Option<f64> {
+    let quota = json.get("quota")?;
+    let model_key = text(json, &["model", "id"]).or_else(|| text(json, &["model", "display_name"]));
+    match model_key {
+        Some(m) => {
+            let is_3p =
+                THREE_P_PREFIXES.iter().any(|p| m.get(..p.len()).is_some_and(|head| head.eq_ignore_ascii_case(p)));
+            let prefix = if is_3p { "3p" } else { "gemini" };
+            bucket_used_pct(quota, &format!("{prefix}-{window}"))
+        }
+        None => bucket_used_pct(quota, &format!("gemini-{window}"))
+            .or_else(|| bucket_used_pct(quota, &format!("3p-{window}"))),
+    }
 }
 
 fn settings_effort(home: &Path) -> Option<String> {

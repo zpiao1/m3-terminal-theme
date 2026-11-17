@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code status line — Material 3 Expressive (wallpaper dynamic colour), powerline
+# Claude Code / Antigravity CLI status line — Material 3 Expressive (wallpaper dynamic colour), powerline
 # Rounded left cap → arrow transitions → rounded right cap
 # Uses truecolor (24-bit RGB) for seamless glyph rendering.
 # Runs on every refresh, and each fork costs ~13ms under Git Bash on Windows,
@@ -41,12 +41,42 @@ pick_state() {  # value warn_at danger_at normal_segment
 
 # One jq pass. \x1f (unit separator) is not IFS whitespace, so empty fields
 # survive. -j: no trailing newline (Windows jq would end it with \r\n).
-IFS=$'\x1f' read -r cwd model_id model_short effort cost_usd cost_cents used_pct five_pct week_pct < <(
-  jq -j '[.cwd, .model.id, .model.display_name, .effort.level,
-          .cost.total_cost_usd, (.cost.total_cost_usd | if . == null then null else . * 100 | floor end),
-          .context_window.used_percentage, .rate_limits.five_hour.used_percentage,
-          .rate_limits.seven_day.used_percentage]
-         | map(. // "" | tostring) | join("\u001f")' <<< "$input")
+IFS=$'\x1f' read -r product cwd model_id model_short effort cost_usd cost_cents used_pct five_pct week_pct < <(
+  jq -j '
+    def obj: if type == "object" then . else {} end;
+    def s: if type == "string" and . != "" then . else null end;
+    def n: if type == "number" then . else null end;
+    def bucket_pct($q; $k):
+      ($q[$k] | obj) |
+      if .disabled != true and (.remaining_fraction | type) == "number" then
+        ((1 - .remaining_fraction) * 100 | if . < 0 then 0 elif . > 100 then 100 else . end)
+      else null end;
+    def quota_pct($w):
+      (.quota | obj) as $q |
+      ((.model | obj | .id | s) // (.model | obj | .display_name | s)) as $mk |
+      if $mk != null then
+        ($mk | ascii_downcase |
+          if startswith("claude") or startswith("gpt") or startswith("fable") or startswith("opus") or startswith("sonnet") or startswith("3p")
+          then "3p" else "gemini" end) as $p |
+        bucket_pct($q; "\($p)-\($w)")
+      else
+        bucket_pct($q; "gemini-\($w)") // bucket_pct($q; "3p-\($w)")
+      end;
+    obj |
+    ((.cost | obj | .total_cost_usd | n) // (.cost | obj | .total_usd | n)) as $cost |
+    [
+      (.product | s),
+      ((.cwd | s) // (.workspace | obj | .current_dir | s)),
+      (.model | obj | .id | s),
+      (.model | obj | .display_name | s),
+      ((.effort | obj | .level | s) // (.model | obj | .effort | s)),
+      $cost,
+      ($cost | if . == null then null else . * 100 | floor end),
+      (.context_window | obj | .used_percentage | n),
+      ((.rate_limits | obj | .five_hour | obj | .used_percentage | n) // quota_pct("5h")),
+      ((.rate_limits | obj | .seven_day | obj | .used_percentage | n) // quota_pct("weekly"))
+    ] | map(. // "" | tostring) | join("\u001f")
+  ' <<< "$input")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Build segments: "SEGNAME|content"
@@ -90,14 +120,19 @@ fi
 [ -n "$branch" ] && [ "$branch" != "HEAD" ] && \
   segments+=("BRANCH|  $(cap "$branch") ")
 
-# 3. Model + effort — display_name already carries the version ("Opus 5.5")
+# 3. Model + effort — display_name carries version, and on agy CLI may end with " (<effort>)"
+if [[ $model_short =~ ^(.*)\ \(([Ll][Oo][Ww]|[Mm][Ee][Dd][Ii][Uu][Mm]|[Hh][Ii][Gg][Hh]|[Xx][Hh][Ii][Gg][Hh]|[Mm][Aa][Xx])\)$ ]]; then
+  model_short="${BASH_REMATCH[1]}"
+  [ -z "$effort" ] && effort="${BASH_REMATCH[2],,}"
+fi
+# Live session effort (reflects /effort changes); fall back to settings default outside Antigravity
+[ -z "$effort" ] && [ "$product" != "antigravity" ] && \
+  effort=$(jq -j 'if .effortLevel? == null or .effortLevel? == false then empty else .effortLevel? end' "$HOME/.claude/settings.json" 2>/dev/null)
 case "$model_id" in *"[1m]"*) model_short="${model_short}·1M" ;; esac
-# Live session effort (reflects /effort changes); fall back to settings default
-[ -z "$effort" ] && effort=$(jq -r '.effortLevel // empty' "$HOME/.claude/settings.json" 2>/dev/null)
 [ -n "$effort" ] && model_short="${model_short} · ${effort}"
 [ -n "$model_short" ] && segments+=("MODEL|  ${model_short} ")
 
-# 4. Cost — session total reported by Claude Code; segment turns warn >$5, danger >$15
+# 4. Cost — session total reported by host; segment turns warn >$5, danger >$15
 if [ -n "$cost_usd" ]; then
   printf -v cost '%.2f' "$cost_usd"
   pick_state "$cost_cents" 500 1500 COST
