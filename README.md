@@ -1,9 +1,9 @@
 # m3-terminal-theme
 
 Material 3 **Expressive** dynamic colour (2025 spec) from the desktop wallpaper,
-applied to Windows Terminal, Intelligent Terminal, the Claude Code statusline,
-the Windows PowerShell prompt and the cmd prompt. Re-themes within ~0.5 s of a wallpaper
-change or a light/dark mode switch.
+applied to Windows Terminal, Intelligent Terminal, the Claude Code / Antigravity CLI
+statusline, the Windows PowerShell prompt and the cmd prompt. Re-themes within ~0.5 s
+of a wallpaper change or a light/dark mode switch.
 
 Two Rust binaries, no runtime dependencies:
 
@@ -13,7 +13,7 @@ Two Rust binaries, no runtime dependencies:
   `TranscodedWallpaper -> QuantizerCelebi -> Score -> SchemeExpressive(2025, dark+light)`.
   ANSI colours are M3 "custom colours": fixed semantic hues `harmonize`d
   toward the source, drawn at mode-specific tones.
-- `statusline/` - the Claude Code statusline renderer.
+- `statusline/` - the Claude Code & Antigravity CLI (`agy`) statusline renderer.
 
 | Target | How it updates |
 |---|---|
@@ -38,8 +38,9 @@ like - both schemes are generated and the theme follows the switch.
    palette and cmd `PROMPT` for the current wallpaper.
 2. PowerShell prompt: paste `profile-snippet.ps1` into `$PROFILE`, above any
    block that wraps `prompt` (e.g. the Intelligent Terminal integration).
-3. Claude Code statusline: `cargo install --path statusline`, then in
-   `~/.claude/settings.json`:
+3. Claude Code & Antigravity CLI (`agy`) statusline: `cargo install --path statusline`,
+   then add the same block to `~/.claude/settings.json` and/or
+   `~/.gemini/antigravity-cli/settings.json`:
 
        "statusLine": { "type": "command",
                        "command": "~/.cargo/bin/m3-statusline.exe" }

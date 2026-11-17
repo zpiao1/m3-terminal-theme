@@ -2,7 +2,7 @@
 name = "m3-statusline"
 version = "0.1.0"
 edition = "2024"
-description = "Claude Code status line on the m3-terminal-theme palette (port of statusline-command.sh)"
+description = "Claude Code & Antigravity CLI status line on the m3-terminal-theme palette (port of statusline-command.sh)"
 
 [dependencies]
 serde_json = "1"
