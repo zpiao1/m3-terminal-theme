@@ -1,7 +1,7 @@
 # m3-terminal-theme
 
-Material 3 **Expressive** dynamic colour (2025 spec) from the desktop wallpaper,
-applied to Windows Terminal, Intelligent Terminal, the Claude Code / Antigravity CLI
+Material 3 **Expressive** dynamic colour (2025/2026 spec) from the desktop wallpaper,
+applied to Windows Terminal, Intelligent Terminal, T3 Code, the Claude Code / Antigravity CLI
 statusline, the Windows PowerShell prompt and the cmd prompt. Re-themes within ~0.5 s
 of a wallpaper change or a light/dark mode switch.
 
@@ -21,6 +21,7 @@ Two Rust binaries, no runtime dependencies:
 | `~/.config/m3-theme/statusline.json` / `.sh` | the same pill colours, read every render by `statusline/` / `statusline-command.sh` |
 | `HKCU\Environment\PROMPT` (cmd) | rewritten with baked-in truecolor (`$E[...`) + WM_SETTINGCHANGE broadcast; new cmd tabs/windows pick it up, open ones keep the old prompt |
 | `~/.config/m3-theme/palette.ps1` | re-read by the profile prompt when its mtime changes (prompt + PSReadLine colours) |
+| `~/.t3/userdata/themes/material-3-expressive.json` | written when T3 Code's themes dir exists; dual dark+light 2026 colours + shape/spring CSS; T3 Code's watcher hot-reloads on wallpaper changes |
 
 ## Setup
 
