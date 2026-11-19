@@ -44,7 +44,7 @@ fn palettes() {
 fn statusline_powershell_and_cmd() {
     let pal = from_source(Rgb::from_u32(SOURCES[0]));
     let dir = scratch("files");
-    let targets = Targets { out_dir: dir.clone(), terminal_settings: vec![] };
+    let targets = Targets { out_dir: dir.clone(), terminal_settings: vec![], t3_themes_dir: dir.join("no-t3") };
     for dark in [true, false] {
         let mode = if dark { "dark" } else { "light" };
         let header = format!("# header ({mode})");
@@ -103,4 +103,183 @@ fn mix_rounds_half_to_even() {
     assert_eq!(mix("#FFFFFF", "#000000", 0.5), "#808080"); // 127.5 -> 128
     assert_eq!(mix("#010101", "#000000", 0.5), "#000000"); // 0.5 -> 0
     assert_eq!(mix("#030303", "#000000", 0.5), "#020202"); // 1.5 -> 2
+}
+
+const T3_ROLES: [&str; 61] = [
+    "canvas",
+    "chrome",
+    "toolbar",
+    "toolbarForeground",
+    "toolbarBorder",
+    "toolbarControl",
+    "toolbarControlForeground",
+    "toolbarControlHover",
+    "surface",
+    "surfaceRaised",
+    "surfaceOverlay",
+    "text",
+    "textMuted",
+    "border",
+    "input",
+    "focus",
+    "accent",
+    "accentForeground",
+    "secondary",
+    "secondaryForeground",
+    "muted",
+    "mutedForeground",
+    "placeholder",
+    "secondaryLabel",
+    "iconMuted",
+    "error",
+    "errorForeground",
+    "errorSurface",
+    "warning",
+    "warningForeground",
+    "warningSurface",
+    "update",
+    "updateForeground",
+    "updateSurface",
+    "accentSurface",
+    "accentSurfaceForeground",
+    "messageSurface",
+    "messageForeground",
+    "messageAction",
+    "messageActionForeground",
+    "messageActionHover",
+    "codeBackground",
+    "codeForeground",
+    "searchMatchBackground",
+    "searchMatchForeground",
+    "searchMatchActiveBackground",
+    "searchMatchActiveForeground",
+    "sidebar",
+    "sidebarForeground",
+    "sidebarMutedForeground",
+    "sidebarControlSurface",
+    "sidebarRowHover",
+    "sidebarRowActive",
+    "sidebarRowSelected",
+    "sidebarBorder",
+    "terminalBackground",
+    "terminalForeground",
+    "terminalCursor",
+    "terminalSelection",
+    "terminalScrollbar",
+    "terminalScrollbarHover",
+];
+
+const CONTRAST_PAIRS: [(&str, &str); 31] = [
+    ("text", "canvas"),
+    ("text", "surface"),
+    ("text", "surfaceRaised"),
+    ("text", "surfaceOverlay"),
+    ("textMuted", "canvas"),
+    ("textMuted", "surface"),
+    ("toolbarForeground", "toolbar"),
+    ("toolbarControlForeground", "toolbarControl"),
+    ("toolbarControlForeground", "toolbarControlHover"),
+    ("accentForeground", "accent"),
+    ("secondaryForeground", "secondary"),
+    ("mutedForeground", "muted"),
+    ("mutedForeground", "canvas"),
+    ("placeholder", "canvas"),
+    ("placeholder", "surface"),
+    ("secondaryLabel", "canvas"),
+    ("iconMuted", "canvas"),
+    ("errorForeground", "errorSurface"),
+    ("warningForeground", "warningSurface"),
+    ("updateForeground", "updateSurface"),
+    ("accentSurfaceForeground", "accentSurface"),
+    ("messageForeground", "messageSurface"),
+    ("messageActionForeground", "messageAction"),
+    ("messageActionForeground", "messageActionHover"),
+    ("codeForeground", "codeBackground"),
+    ("searchMatchForeground", "searchMatchBackground"),
+    ("searchMatchActiveForeground", "searchMatchActiveBackground"),
+    ("sidebarForeground", "sidebar"),
+    ("sidebarMutedForeground", "sidebar"),
+    ("sidebarForeground", "sidebarRowSelected"),
+    ("terminalForeground", "terminalBackground"),
+];
+
+fn relative_luminance(hex: &str) -> f64 {
+    let [r, g, b] = rgb(hex);
+    let lin = |c: u8| {
+        let s = f64::from(c) / 255.0;
+        if s <= 0.04045 { s / 12.92 } else { ((s + 0.055) / 1.055).powf(2.4) }
+    };
+    0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+}
+
+fn wcag_contrast(fg: &str, bg: &str) -> f64 {
+    let (l1, l2) = (relative_luminance(fg), relative_luminance(bg));
+    let (hi, lo) = if l1 >= l2 { (l1, l2) } else { (l2, l1) };
+    (hi + 0.05) / (lo + 0.05)
+}
+
+fn is_hex6(s: &str) -> bool {
+    s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+#[test]
+fn t3_code_theme() {
+    let dir = scratch("t3");
+    let missing = dir.join("absent-themes");
+    let pal0 = from_source(Rgb::from_u32(SOURCES[0]));
+    assert_eq!(t3_code::write_theme(&pal0, &missing), Ok(false));
+    assert!(!missing.exists(), "missing themes dir must not be created");
+
+    let themes_dir = dir.join("themes");
+    std::fs::create_dir_all(&themes_dir).unwrap();
+    assert_eq!(t3_code::write_theme(&pal0, &themes_dir), Ok(true));
+    let written_path = themes_dir.join(format!("{}.json", t3_code::THEME_ID));
+    let written = std::fs::read_to_string(&written_path).unwrap();
+    check("t3-material-3-expressive.json", &written);
+    assert_eq!(t3_code::write_theme(&pal0, &themes_dir), Ok(false), "rewrite with no change");
+
+    for source in SOURCES {
+        let pal = from_source(Rgb::from_u32(source));
+        let v = t3_code::theme_json(&pal);
+        assert_eq!(v["version"], 1);
+        assert_eq!(v["name"], t3_code::THEME_NAME);
+        assert_eq!(v["appearance"], "dark");
+        assert!(v.get("id").is_none(), "theme JSON must omit id");
+
+        let variants = v["variants"].as_object().expect("variants object");
+        assert_eq!(variants.len(), 1);
+        assert!(variants.contains_key("light"));
+
+        for (mode, map) in [
+            ("dark", v["colors"].as_object().expect("colors object")),
+            ("light", variants["light"].as_object().expect("light object")),
+        ] {
+            assert_eq!(map.len(), T3_ROLES.len(), "{source:06X} {mode} role count");
+            for role in T3_ROLES {
+                let hex = map.get(role).and_then(Value::as_str).expect("hex color");
+                assert!(is_hex6(hex), "{source:06X} {mode} {role}={hex} not #RRGGBB");
+            }
+            for (fg_role, bg_role) in CONTRAST_PAIRS {
+                let fg = map[fg_role].as_str().unwrap();
+                let bg = map[bg_role].as_str().unwrap();
+                let ratio = wcag_contrast(fg, bg);
+                assert!(ratio >= 4.5, "{source:06X} {mode} ({fg_role}={fg}, {bg_role}={bg}) contrast {ratio:.2} < 4.5");
+            }
+        }
+
+        let css = v["css"].as_str().expect("css string");
+        assert!(!css.is_empty() && css.len() < 20_000, "css len={}", css.len());
+        let css_lower = css.to_ascii_lowercase();
+        assert!(!css.contains('\\'), "css contains backslash");
+        for forbidden in ["@import", "url(", "image-set(", "src("] {
+            assert!(!css_lower.contains(forbidden), "css contains {forbidden}");
+        }
+        for decl in css_lower.split([';', '}']) {
+            assert!(
+                !(decl.contains("transition") && decl.contains("!important")),
+                "transition rule must not use !important: {decl}"
+            );
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
 }

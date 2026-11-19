@@ -14,6 +14,8 @@ use serde_json::{Map, Value, json};
 
 use crate::palette::{CUSTOM, Colors, Palette, capitalize, hexcolor, rgb};
 
+mod t3_code;
+
 type Result<T> = std::result::Result<T, String>;
 
 const fn scheme_name(dark: bool) -> &'static str {
@@ -65,6 +67,7 @@ const SELECTION: (&str, &str) = ("secondaryContainer", "onSecondaryContainer");
 pub struct Targets {
     out_dir: PathBuf,
     terminal_settings: Vec<(&'static str, PathBuf)>,
+    t3_themes_dir: PathBuf,
 }
 
 impl Targets {
@@ -82,6 +85,7 @@ impl Targets {
         Self {
             out_dir: home().join(".config").join("m3-theme"),
             terminal_settings: vec![settings("WindowsTerminal"), settings("IntelligentTerminal")],
+            t3_themes_dir: home().join(".t3").join("userdata").join("themes"),
         }
     }
 
@@ -112,6 +116,7 @@ impl Targets {
         record("statusline", self.statusline(c, &header));
         record("powershell", self.powershell(c, &header));
         record("cmd_prompt", Self::cmd_prompt(c));
+        record("t3_code", t3_code::write_theme(pal, &self.t3_themes_dir));
         changed
     }
 
