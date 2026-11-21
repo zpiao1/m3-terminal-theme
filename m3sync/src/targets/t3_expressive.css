@@ -78,10 +78,11 @@
   [data-chat-composer-form] button,
   [data-slot="composer-host"] button,
   [data-chat-header] button,
-  [data-thread-details-panel] :is(button, a)
+  [data-thread-details-panel] :is(button, a),
+  [data-sidebar="menu-button"][data-size="icon"]
 ):not(:where(
   [data-sidebar="rail"],
-  [data-sidebar="menu-button"],
+  [data-sidebar="menu-button"]:not([data-size="icon"]),
   [data-sidebar="menu-sub-button"],
   [data-sidebar-row],
   [data-slot="inline-button"],
@@ -174,10 +175,11 @@
   [data-chat-composer-form] button,
   [data-slot="composer-host"] button,
   [data-chat-header] button,
-  [data-thread-details-panel] :is(button, a)
+  [data-thread-details-panel] :is(button, a),
+  [data-sidebar="menu-button"][data-size="icon"]
 ):not(:where(
   [data-sidebar="rail"],
-  [data-sidebar="menu-button"],
+  [data-sidebar="menu-button"]:not([data-size="icon"]),
   [data-sidebar="menu-sub-button"],
   [data-sidebar-row],
   [data-slot="inline-button"],
@@ -231,10 +233,11 @@
   [data-chat-composer-form] button,
   [data-slot="composer-host"] button,
   [data-chat-header] button,
-  [data-thread-details-panel] :is(button, a)
+  [data-thread-details-panel] :is(button, a),
+  [data-sidebar="menu-button"][data-size="icon"]
 ):not(:where(
   [data-sidebar="rail"],
-  [data-sidebar="menu-button"],
+  [data-sidebar="menu-button"]:not([data-size="icon"]),
   [data-sidebar="menu-sub-button"],
   [data-sidebar-row],
   [data-slot="inline-button"],
@@ -258,7 +261,8 @@
   [data-slot="composer-banner"] button:not([data-slot="button"]),
   :has([data-slot="context-chip-label"]),
   :has([data-slot="workspace-breadcrumb-text"]),
-  [data-thread-terminal-drawer] button[data-slot="popover-trigger"]
+  [data-thread-terminal-drawer] button[data-slot="popover-trigger"],
+  [data-slot="sidebar-footer"] button[data-slot="tooltip-trigger"]
 )):not(:disabled):where([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
   border-radius: var(--m3-shape-md) !important;
 }
@@ -289,10 +293,11 @@
   [data-chat-composer-form] button,
   [data-slot="composer-host"] button,
   [data-chat-header] button,
-  [data-thread-details-panel] :is(button, a)
+  [data-thread-details-panel] :is(button, a),
+  [data-sidebar="menu-button"][data-size="icon"]
 ):not(:where(
   [data-sidebar="rail"],
-  [data-sidebar="menu-button"],
+  [data-sidebar="menu-button"]:not([data-size="icon"]),
   [data-sidebar="menu-sub-button"],
   [data-sidebar-row],
   [data-slot="inline-button"],
@@ -609,7 +614,7 @@
 [data-thread-item] [role="button"],
 [data-thread-item] [data-sidebar-row],
 [data-sidebar-row],
-[data-sidebar="menu-button"],
+[data-sidebar="menu-button"]:not([data-size="icon"]),
 [data-sidebar="menu-sub-button"],
 [data-slot="sidebar"] [role="option"] {
   border-radius: var(--m3-pill-row) !important;
@@ -624,7 +629,7 @@
   [data-thread-item] [role="button"],
   [data-thread-item] [data-sidebar-row],
   [data-sidebar-row],
-  [data-sidebar="menu-button"],
+  [data-sidebar="menu-button"]:not([data-size="icon"]),
   [data-sidebar="menu-sub-button"],
   [data-slot="sidebar"] [role="option"]
 ):not(:disabled):active {
@@ -640,6 +645,25 @@
   [data-slot="sidebar"] [role="option"]
 ):is([aria-current="page"], [data-active="true"]) {
   font-weight: 600;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"][data-state="collapsed"] [data-sidebar="menu-button"] {
+  border-radius: var(--m3-pill-control) !important;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"][data-state="collapsed"] [data-sidebar="menu-button"]:not(:disabled):is([data-active="true"], [aria-current="page"]),
+[data-sidebar="menu-button"][data-size="icon"]:not(:disabled):is([data-active="true"], [aria-current="page"]) {
+  border-radius: var(--m3-shape-md) !important;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"][data-state="collapsed"] [data-sidebar="menu-button"]:not(:disabled):active,
+[data-sidebar="menu-button"][data-size="icon"]:not(:disabled):active {
+  border-radius: var(--m3-shape-sm) !important;
+  scale: 1 !important;
+}
+
+[data-slot="sidebar-footer"] button[data-slot="tooltip-trigger"]:not([data-sidebar="menu-button"]):not(:disabled, [aria-disabled="true"]):active {
+  background-color: var(--sidebar-row-active);
 }
 
 [data-active-tab] {
