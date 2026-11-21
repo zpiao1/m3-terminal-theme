@@ -55,6 +55,9 @@
 [data-chat-header] button,
 [data-toolbar-control],
 [data-slot="menu-trigger"],
+button[data-slot="combobox-trigger"],
+button[data-slot="popover-trigger"],
+[data-thread-details-panel] :is(button, a),
 [data-slot="toggle"] {
   border-radius: var(--m3-btn-radius, var(--m3-pill-control)) !important;
   font-weight: 550;
@@ -81,6 +84,9 @@
   [data-chat-header] button,
   [data-toolbar-control],
   [data-slot="menu-trigger"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="popover-trigger"],
+  [data-thread-details-panel] :is(button, a),
   [data-slot="toggle"]
 ):not(:disabled):is([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
   border-radius: var(--m3-shape-md) !important;
@@ -92,9 +98,79 @@
   [data-chat-header] button,
   [data-toolbar-control],
   [data-slot="menu-trigger"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="popover-trigger"],
+  [data-thread-details-panel] :is(button, a),
   [data-slot="toggle"]
 ):not(:disabled):active {
   border-radius: var(--m3-shape-sm) !important;
+  scale: 1 !important;
+}
+
+/* Thread details select & split rows (SplitButtonXSmallTokens.kt: 16px outer pill, 4px inner seam, unified 8px press / 12px open) */
+[data-thread-details-panel] [data-slot="select-label"] {
+  border-start-start-radius: inherit !important;
+  border-end-start-radius: inherit !important;
+  border-start-end-radius: var(--m3-shape-xs) !important;
+  border-end-end-radius: var(--m3-shape-xs) !important;
+}
+
+[data-thread-details-panel] [data-slot="select-icon"] {
+  border-start-start-radius: var(--m3-shape-xs) !important;
+  border-end-start-radius: var(--m3-shape-xs) !important;
+  border-start-end-radius: inherit !important;
+  border-end-end-radius: inherit !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) {
+  border-radius: var(--m3-pill-control) !important;
+  transition:
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button):has(> :is(button, a):is([aria-expanded="true"], [aria-haspopup][data-popup-open])) {
+  border-radius: var(--m3-shape-md) !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button):has(> :is(button, a):not(:disabled):active) {
+  border-radius: var(--m3-shape-sm) !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) > :is(button, a):first-child {
+  border-start-start-radius: inherit !important;
+  border-end-start-radius: inherit !important;
+  border-start-end-radius: var(--m3-shape-xs) !important;
+  border-end-end-radius: var(--m3-shape-xs) !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) > button:last-child {
+  border-start-start-radius: var(--m3-shape-xs) !important;
+  border-end-start-radius: var(--m3-shape-xs) !important;
+  border-start-end-radius: inherit !important;
+  border-end-end-radius: inherit !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) > button:last-child:is([aria-expanded="true"], [aria-haspopup][data-popup-open]) {
+  border-start-start-radius: var(--m3-shape-md) !important;
+  border-end-start-radius: var(--m3-shape-md) !important;
+  border-start-end-radius: inherit !important;
+  border-end-end-radius: inherit !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) > :is(button, a):first-child:not(:disabled):active {
+  border-start-start-radius: inherit !important;
+  border-end-start-radius: inherit !important;
+  border-start-end-radius: var(--m3-shape-sm) !important;
+  border-end-end-radius: var(--m3-shape-sm) !important;
+  scale: 1 !important;
+}
+
+[data-thread-details-panel] div:has(> :is(button, a) + span[aria-hidden="true"] + button) > button:last-child:not(:disabled):active {
+  border-start-start-radius: var(--m3-shape-sm) !important;
+  border-end-start-radius: var(--m3-shape-sm) !important;
+  border-start-end-radius: inherit !important;
+  border-end-end-radius: inherit !important;
   scale: 1 !important;
 }
 
