@@ -910,8 +910,8 @@
 }
 
 /* App panels (sidebar, header inset, inline right panel, & terminal drawer), collapsibles, sheets, and toasts:
- * preserve T3 Code's --panel-animation-duration so JS presence timers never clip exits,
- * and use critically-damped DefaultEffects timing so width/row transitions never overshoot. */
+ * keep close/exit durations on T3 Code's --panel-animation-duration so JS presence timers never clip unmounts,
+ * and give the inline right panel full M3 Expressive DefaultSpatial (434ms) expansion + surface glide on open. */
 [data-panel-animations="true"] [data-slot="sidebar"] :is([data-slot="sidebar-gap"], [data-slot="sidebar-container"]),
 [data-panel-animations="true"] [data-chat-header],
 [data-panel-animations="true"] [data-preview-panel-mode="inline"],
@@ -919,9 +919,34 @@
   transition-timing-function: var(--m3-motion-default-effects);
 }
 
+[data-preview-panel-mode="inline"] {
+  border-left-color: color-mix(in oklab, var(--m3-outline-variant) 55%, transparent);
+}
+
+[data-panel-animations="true"] [data-preview-panel-mode="inline"]:not([data-workspace-unavailable="true"]) {
+  transition-duration: var(--m3-motion-default-spatial-duration);
+  transition-timing-function: var(--m3-motion-default-spatial);
+}
+
+[data-panel-animations="true"] [data-preview-panel-mode="inline"] [data-right-panel-surface-content] {
+  opacity: 1;
+  translate: none;
+  transition:
+    translate var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-panel-animations="true"] [data-preview-panel-mode="inline"][data-workspace-unavailable="true"] [data-right-panel-surface-content] {
+  opacity: 0;
+  translate: 16px 0;
+  transition:
+    translate var(--panel-animation-duration, 100ms) var(--m3-motion-default-effects),
+    opacity var(--panel-animation-duration, 100ms) var(--m3-motion-fast-effects);
+}
+
 [data-panel-animations="true"] [data-chat-header] > [data-workspace-titlebar-controls]:not(:has([data-right-panel-toggle])) {
   opacity: 1;
-  transition: opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects) var(--panel-animation-duration, 100ms);
+  transition: opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects) 120ms;
 }
 
 [data-slot="collapsible-panel"] {
@@ -937,8 +962,8 @@
 [data-slot="sheet-popup"] {
   transition:
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
-    translate var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
-    transform var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects);
+    translate var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
+    transform var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial);
 }
 
 [data-slot="sheet-popup"][data-ending-style] {
@@ -1144,6 +1169,11 @@
 
   [data-panel-animations="true"] [data-chat-header] > [data-workspace-titlebar-controls]:not(:has([data-right-panel-toggle])) {
     opacity: 0;
+  }
+
+  [data-panel-animations="true"] [data-preview-panel-mode="inline"]:not([data-workspace-unavailable="true"]) [data-right-panel-surface-content] {
+    opacity: 0;
+    translate: 24px 0;
   }
 }
 
