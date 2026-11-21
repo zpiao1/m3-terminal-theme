@@ -29,6 +29,17 @@ use material_colors::score::Score;
 const SAMPLE_SIZE: u32 = 256;
 pub const FALLBACK_SOURCE: Rgb = Rgb::from_u32(0x4285F4);
 
+/// Windows writes 8 RGBA entries (light to dark) to Explorer\Accent\AccentPalette;
+/// entry 3 matches WinRT's UISettings.GetColorValue(UIColorType.Accent) byte-for-byte.
+/// Never use DWM\AccentColor (title-bar colorization, can snap back to a stale value).
+pub const ACCENT_VALUE: &str = "AccentPalette";
+pub const ACCENT_INDEX: usize = 3;
+
+pub fn decode_accent_palette(palette: &[u8], index: usize) -> Option<Rgb> {
+    let rgb = palette.get(index * 4..index * 4 + 3)?;
+    Some(Rgb::new(rgb[0], rgb[1], rgb[2]))
+}
+
 /// Role name -> '#RRGGBB', in a stable order (it is written out as JSON).
 pub type Colors = IndexMap<String, String>;
 
@@ -195,5 +206,17 @@ mod tests {
         let _ = std::fs::remove_file(&path);
         assert_eq!(got.as_deref(), Ok("#EB17A0"));
         assert!(source_color(Path::new("no such wallpaper")).is_err());
+    }
+
+    const ACCENT_PALETTE_SAMPLE: [u8; 32] = [
+        0xAE, 0xE8, 0xDF, 0x00, 0x8D, 0xCA, 0xBE, 0x00, 0x4B, 0x9C, 0x8A, 0x00, 0x3D, 0x80, 0x6F, 0x00, //
+        0x30, 0x68, 0x57, 0x00, 0x1F, 0x49, 0x38, 0x00, 0x0B, 0x26, 0x14, 0x00, 0x88, 0x17, 0x98, 0x00,
+    ];
+
+    #[test]
+    fn accent_is_palette_entry_3_matching_winrt_api() {
+        assert_eq!(decode_accent_palette(&ACCENT_PALETTE_SAMPLE, ACCENT_INDEX).map(hexcolor), Some("#3D806F".into()));
+        assert_eq!(decode_accent_palette(&ACCENT_PALETTE_SAMPLE, 0).map(hexcolor), Some("#AEE8DF".into()));
+        assert!(decode_accent_palette(&ACCENT_PALETTE_SAMPLE[..14], ACCENT_INDEX).is_none());
     }
 }

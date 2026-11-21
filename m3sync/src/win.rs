@@ -19,8 +19,8 @@ use windows_sys::Win32::Storage::FileSystem::{
 use windows_sys::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE};
 use windows_sys::Win32::System::Registry::{
     HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, REG_SZ, RRF_NOEXPAND, RRF_RT_DWORD,
-    RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ, RegCloseKey, RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW,
-    RegSetKeyValueW,
+    RRF_RT_REG_BINARY, RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ, RegCloseKey, RegGetValueW, RegNotifyChangeKeyValue,
+    RegOpenKeyExW, RegSetKeyValueW,
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, INFINITE, WaitForSingleObject};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -28,6 +28,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+pub const ACCENT_KEY: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent";
 const ENVIRONMENT_KEY: &str = "Environment";
 const PROMPT_VALUE: &str = "PROMPT";
 
@@ -53,6 +54,34 @@ pub fn is_dark() -> bool {
         )
     };
     rc != ERROR_SUCCESS || value == 0
+}
+
+/// A REG_BINARY value under HKCU.
+pub fn read_binary(subkey: &str, value: &str) -> Option<Vec<u8>> {
+    let (key, name) = (wide(subkey), wide(value));
+    let mut size = 0u32;
+    // SAFETY: key and name are NUL-terminated and outlive the closure; `buf`
+    // is null (size query) or points to a buffer of at least `*size` bytes.
+    let query = |buf: *mut u8, size: &mut u32| unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            name.as_ptr(),
+            RRF_RT_REG_BINARY,
+            std::ptr::null_mut(),
+            buf.cast(),
+            size,
+        )
+    };
+    if query(std::ptr::null_mut(), &mut size) != ERROR_SUCCESS {
+        return None;
+    }
+    let mut buf = vec![0u8; size as usize];
+    if query(buf.as_mut_ptr(), &mut size) != ERROR_SUCCESS {
+        return None;
+    }
+    buf.truncate(size as usize);
+    Some(buf)
 }
 
 pub fn get_env_prompt() -> Option<String> {

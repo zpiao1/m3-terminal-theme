@@ -1,16 +1,20 @@
 # m3-terminal-theme
 
-Material 3 **Expressive** dynamic colour (2025/2026 spec) from the desktop wallpaper,
-applied to Windows Terminal, Intelligent Terminal, T3 Code, the Claude Code / Antigravity CLI
-statusline, the Windows PowerShell prompt and the cmd prompt. Re-themes within ~0.5 s
-of a wallpaper change or a light/dark mode switch.
+Material 3 **Expressive** dynamic colour (2025/2026 spec) from the Windows accent colour
+(or directly from the desktop wallpaper), applied to Windows Terminal, Intelligent Terminal,
+T3 Code, the Claude Code / Antigravity CLI statusline, the Windows PowerShell prompt and the
+cmd prompt. Re-themes within ~0.5 s of an accent/wallpaper change or a light/dark mode switch.
 
 Two Rust binaries, no runtime dependencies:
 
-- `m3sync/` - the watcher. Pipeline (`palette.rs`, via
+- `m3sync/` - the watcher. Defaults to the Windows accent colour
+  (`HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Accent\AccentPalette` entry 3,
+  which matches the taskbar and `tt-keyboard-sync`, and tracks the wallpaper when
+  "Automatically pick an accent color from my background" is enabled), or pass
+  `--source wallpaper` for direct `TranscodedWallpaper -> QuantizerCelebi -> Score`
+  quantization; then builds `SchemeExpressive(2025, dark+light)` via
   [`material-colors`](https://github.com/Aiving/material-colors), a port that
-  tracks Google's material-color-utilities):
-  `TranscodedWallpaper -> QuantizerCelebi -> Score -> SchemeExpressive(2025, dark+light)`.
+  tracks Google's material-color-utilities.
   ANSI colours are M3 "custom colours": fixed semantic hues `harmonize`d
   toward the source, drawn at mode-specific tones.
 - `statusline/` - the Claude Code & Antigravity CLI (`agy`) statusline renderer.
@@ -21,7 +25,7 @@ Two Rust binaries, no runtime dependencies:
 | `~/.config/m3-theme/statusline.json` / `.sh` | the same pill colours, read every render by `statusline/` / `statusline-command.sh` |
 | `HKCU\Environment\PROMPT` (cmd) | rewritten with baked-in truecolor (`$E[...`) + WM_SETTINGCHANGE broadcast; new cmd tabs/windows pick it up, open ones keep the old prompt |
 | `~/.config/m3-theme/palette.ps1` | re-read by the profile prompt when its mtime changes (prompt + PSReadLine colours) |
-| `~/.t3/userdata/themes/material-3-expressive.json` | written when T3 Code's themes dir exists; dual dark+light 2026 colours + shape/spring CSS; T3 Code's watcher hot-reloads on wallpaper changes |
+| `~/.t3/userdata/themes/material-3-expressive.json` | written when T3 Code's themes dir exists; dual dark+light 2026 colours + shape/spring CSS; T3 Code's watcher hot-reloads on accent/wallpaper changes |
 
 ## Setup
 
@@ -55,9 +59,10 @@ like - both schemes are generated and the theme follows the switch.
 
 Other commands:
 
-    m3sync            # watcher (a windowless background process)
-    m3sync --preview  # print palette swatches, write nothing
-    cargo test --release  # in m3sync/: change-notification watcher tests
+    m3sync                      # watcher (Windows accent source, windowless background process)
+    m3sync --source wallpaper   # follow TranscodedWallpaper quantization directly
+    m3sync --preview            # print palette swatches, write nothing
+    cargo test --release        # in m3sync/: change-notification watcher tests
 
 To undo: delete the Startup shortcut, the `PROMPT` value under
 `HKCU\Environment`, the profile block, and the "Material You" schemes/themes
