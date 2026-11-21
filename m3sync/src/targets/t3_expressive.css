@@ -43,22 +43,69 @@
   --m3-motion-slow-effects: linear(0, 0.0574, 0.1799, 0.3202, 0.4544, 0.5722, 0.6703, 0.7494, 0.8116, 0.8596, 0.8961, 0.9237, 0.9442, 0.9594, 0.9706, 0.9788, 0.9847, 0.989, 0.9921, 0.9944, 0.996, 0.9972, 0.998, 0.9986, 1);
 }
 
-/* Interactive buttons, icon buttons, composer controls, and toolbar controls.
+/* Interactive buttons, triggers, toggles, composer controls, and toolbar controls.
  * Per M3 Expressive Button.kt / IconButton.kt:
+ *   - Base UI render={<Button />} / render={<Toggle />} replaces data-slot="button", so we
+ *     cover trigger/action/close slots via zero-specificity :where(...) selectors.
  *   - Hover uses state-layer color transition (FastEffects), never scale or shape morph.
  *   - Pressed morphs round -> CornerSmall (8px) using DefaultEffects (critically damped, zero bounce).
  *   - Toggled or open menu/popover triggers morph round -> CornerMedium (12px); bare tooltip
  *     [data-popup-open] without [aria-haspopup] is excluded so hovering a tooltip never morphs shape.
  */
-[data-slot="button"],
-[data-chat-composer-form] button,
-[data-chat-header] button,
-[data-toolbar-control],
-[data-slot="menu-trigger"],
-button[data-slot="combobox-trigger"],
-button[data-slot="popover-trigger"],
-[data-thread-details-panel] :is(button, a),
-[data-slot="toggle"] {
+:where(
+  [data-slot="button"],
+  [data-slot="toggle"],
+  [data-slot="dialog-action"],
+  [data-slot="sidebar-trigger"],
+  [data-slot="menu-trigger"],
+  [data-slot="toast-action"],
+  [data-slot="toast-close"],
+  [data-slot="combobox-clear"],
+  [data-slot="autocomplete-clear"],
+  [data-toolbar-control],
+  button[data-slot="dialog-trigger"],
+  button[data-slot="dialog-close"],
+  button[data-slot="alert-dialog-close"],
+  button[data-slot="popover-trigger"],
+  button[data-slot="popover-close"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="autocomplete-trigger"],
+  button[data-slot="command-dialog-trigger"],
+  button[data-slot="collapsible-trigger"],
+  button[data-slot="preview-card-trigger"],
+  button[data-slot="tooltip-trigger"],
+  button[aria-haspopup],
+  [data-chat-composer-form] button,
+  [data-slot="composer-host"] button,
+  [data-chat-header] button,
+  [data-thread-details-panel] :is(button, a)
+):not(:where(
+  [data-sidebar="rail"],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-sidebar-row],
+  [data-slot="inline-button"],
+  [data-slot="context-chip"],
+  [data-slot="select-trigger"],
+  [data-pending-user-input-toggle],
+  [data-provider-update-main],
+  [data-effort-row],
+  [role="radio"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [data-active-tab] button,
+  [data-theme-color-role] button,
+  [data-theme-library-card] [role="group"] button,
+  [data-slot="calendar"] button,
+  [data-slot="composer-banner"] button:not([data-slot="button"]),
+  :has([data-slot="context-chip-label"]),
+  :has([data-slot="workspace-breadcrumb-text"])
+)) {
   border-radius: var(--m3-btn-radius, var(--m3-pill-control)) !important;
   font-weight: 550;
   transition:
@@ -74,35 +121,202 @@ button[data-slot="popover-trigger"],
   --m3-btn-radius: var(--m3-pill-row);
 }
 
-[data-slot="button"]::before {
+[data-chat-composer-transition-prompt] {
+  --m3-btn-radius: 0px;
+  font-weight: inherit;
+}
+
+:where(
+  [data-slot="button"],
+  [data-slot="toggle"],
+  [data-slot="dialog-action"],
+  [data-slot="sidebar-trigger"],
+  [data-slot="menu-trigger"],
+  button[data-slot="dialog-trigger"],
+  button[data-slot="dialog-close"],
+  button[data-slot="alert-dialog-close"],
+  button[data-slot="popover-trigger"],
+  button[data-slot="popover-close"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="autocomplete-trigger"],
+  button[data-slot="command-dialog-trigger"],
+  button[data-slot="collapsible-trigger"],
+  button[data-slot="preview-card-trigger"],
+  button[data-slot="tooltip-trigger"],
+  button[aria-haspopup]
+)::before {
   border-radius: inherit !important;
 }
 
-:is(
+:where(
   [data-slot="button"],
-  [data-chat-composer-form] button,
-  [data-chat-header] button,
-  [data-toolbar-control],
+  [data-slot="toggle"],
+  [data-slot="dialog-action"],
+  [data-slot="sidebar-trigger"],
   [data-slot="menu-trigger"],
-  button[data-slot="combobox-trigger"],
+  [data-slot="toast-action"],
+  [data-slot="toast-close"],
+  [data-slot="combobox-clear"],
+  [data-slot="autocomplete-clear"],
+  [data-toolbar-control],
+  button[data-slot="dialog-trigger"],
+  button[data-slot="dialog-close"],
+  button[data-slot="alert-dialog-close"],
   button[data-slot="popover-trigger"],
-  [data-thread-details-panel] :is(button, a),
-  [data-slot="toggle"]
-):not(:disabled):is([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
+  button[data-slot="popover-close"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="autocomplete-trigger"],
+  button[data-slot="command-dialog-trigger"],
+  button[data-slot="collapsible-trigger"],
+  button[data-slot="preview-card-trigger"],
+  button[data-slot="tooltip-trigger"],
+  button[aria-haspopup],
+  [data-chat-composer-form] button,
+  [data-slot="composer-host"] button,
+  [data-chat-header] button,
+  [data-thread-details-panel] :is(button, a)
+):not(:where(
+  [data-sidebar="rail"],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-sidebar-row],
+  [data-slot="inline-button"],
+  [data-slot="context-chip"],
+  [data-slot="select-trigger"],
+  [data-pending-user-input-toggle],
+  [data-provider-update-main],
+  [data-effort-row],
+  [role="radio"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [data-active-tab] button,
+  [data-theme-color-role] button,
+  [data-theme-library-card] [role="group"] button,
+  [data-slot="calendar"] button,
+  [data-slot="composer-banner"] button:not([data-slot="button"]),
+  :has([data-slot="context-chip-label"]),
+  :has([data-slot="workspace-breadcrumb-text"])
+)):not(:disabled):is(:hover, :active) {
+  scale: 1 !important;
+}
+
+:where(
+  [data-slot="button"],
+  [data-slot="toggle"],
+  [data-slot="dialog-action"],
+  [data-slot="sidebar-trigger"],
+  [data-slot="menu-trigger"],
+  [data-slot="toast-action"],
+  [data-slot="toast-close"],
+  [data-slot="combobox-clear"],
+  [data-slot="autocomplete-clear"],
+  [data-toolbar-control],
+  button[data-slot="dialog-trigger"],
+  button[data-slot="dialog-close"],
+  button[data-slot="alert-dialog-close"],
+  button[data-slot="popover-trigger"],
+  button[data-slot="popover-close"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="autocomplete-trigger"],
+  button[data-slot="command-dialog-trigger"],
+  button[data-slot="collapsible-trigger"],
+  button[data-slot="preview-card-trigger"],
+  button[data-slot="tooltip-trigger"],
+  button[aria-haspopup],
+  [data-chat-composer-form] button,
+  [data-slot="composer-host"] button,
+  [data-chat-header] button,
+  [data-thread-details-panel] :is(button, a)
+):not(:where(
+  [data-sidebar="rail"],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-sidebar-row],
+  [data-slot="inline-button"],
+  [data-slot="context-chip"],
+  [data-slot="select-trigger"],
+  [data-pending-user-input-toggle],
+  [data-provider-update-main],
+  [data-effort-row],
+  [role="radio"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [data-active-tab] button,
+  [data-theme-color-role] button,
+  [data-theme-library-card] [role="group"] button,
+  [data-slot="calendar"] button,
+  [data-slot="composer-banner"] button:not([data-slot="button"]),
+  :has([data-slot="context-chip-label"]),
+  :has([data-slot="workspace-breadcrumb-text"]),
+  [data-thread-terminal-drawer] button[data-slot="popover-trigger"]
+)):not(:disabled):where([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
   border-radius: var(--m3-shape-md) !important;
 }
 
-:is(
+:where(
   [data-slot="button"],
-  [data-chat-composer-form] button,
-  [data-chat-header] button,
-  [data-toolbar-control],
+  [data-slot="toggle"],
+  [data-slot="dialog-action"],
+  [data-slot="sidebar-trigger"],
   [data-slot="menu-trigger"],
-  button[data-slot="combobox-trigger"],
+  [data-slot="toast-action"],
+  [data-slot="toast-close"],
+  [data-slot="combobox-clear"],
+  [data-slot="autocomplete-clear"],
+  [data-toolbar-control],
+  button[data-slot="dialog-trigger"],
+  button[data-slot="dialog-close"],
+  button[data-slot="alert-dialog-close"],
   button[data-slot="popover-trigger"],
-  [data-thread-details-panel] :is(button, a),
-  [data-slot="toggle"]
-):not(:disabled):active {
+  button[data-slot="popover-close"],
+  button[data-slot="combobox-trigger"],
+  button[data-slot="autocomplete-trigger"],
+  button[data-slot="command-dialog-trigger"],
+  button[data-slot="collapsible-trigger"],
+  button[data-slot="preview-card-trigger"],
+  button[data-slot="tooltip-trigger"],
+  button[aria-haspopup],
+  [data-chat-composer-form] button,
+  [data-slot="composer-host"] button,
+  [data-chat-header] button,
+  [data-thread-details-panel] :is(button, a)
+):not(:where(
+  [data-sidebar="rail"],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-sidebar-row],
+  [data-slot="inline-button"],
+  [data-slot="context-chip"],
+  [data-slot="select-trigger"],
+  [data-pending-user-input-toggle],
+  [data-provider-update-main],
+  [data-effort-row],
+  [role="radio"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [data-active-tab] button,
+  [data-theme-color-role] button,
+  [data-theme-library-card] [role="group"] button,
+  [data-slot="calendar"] button,
+  [data-slot="composer-banner"] button:not([data-slot="button"]),
+  :has([data-slot="context-chip-label"]),
+  :has([data-slot="workspace-breadcrumb-text"])
+)):not(:disabled):active {
   border-radius: var(--m3-shape-sm) !important;
   scale: 1 !important;
 }
@@ -174,57 +388,116 @@ button[data-slot="popover-trigger"],
   scale: 1 !important;
 }
 
-/* Connected toggle groups (ConnectedButtonGroupSmallTokens.kt, m3.material.io/components/button-groups/specs) */
-[data-slot="toggle"]::before {
+/* Joined button and input groups (SplitButtonXSmallTokens.kt: 4px inner seam, 12px open, 8px press) */
+[data-slot="group"]:where(:not([data-orientation="vertical"])) > [data-slot]:not([data-slot="separator"], [data-slot="group"]):where(:has(~ [data-slot])) {
+  border-start-end-radius: var(--m3-shape-xs) !important;
+  border-end-end-radius: var(--m3-shape-xs) !important;
+}
+
+[data-slot="group"]:where(:not([data-orientation="vertical"])) > [data-slot] ~ [data-slot]:not([data-slot="separator"], [data-slot="group"]) {
+  border-start-start-radius: var(--m3-shape-xs) !important;
+  border-end-start-radius: var(--m3-shape-xs) !important;
+}
+
+[data-slot="group"]:where([data-orientation="vertical"]) > [data-slot]:not([data-slot="separator"], [data-slot="group"]):where(:has(~ [data-slot])) {
+  border-end-start-radius: var(--m3-shape-xs) !important;
+  border-end-end-radius: var(--m3-shape-xs) !important;
+}
+
+[data-slot="group"]:where([data-orientation="vertical"]) > [data-slot] ~ [data-slot]:not([data-slot="separator"], [data-slot="group"]) {
+  border-start-start-radius: var(--m3-shape-xs) !important;
+  border-start-end-radius: var(--m3-shape-xs) !important;
+}
+
+[data-slot="group"] > [data-slot]:not([data-slot="separator"], [data-slot="group"]):not(:disabled):where([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
+  border-radius: var(--m3-shape-md) !important;
+}
+
+[data-slot="group"] > [data-slot]:not([data-slot="separator"], [data-slot="group"]):not(:disabled):active {
+  border-radius: var(--m3-shape-sm) !important;
+  scale: 1 !important;
+}
+
+/* Connected toggle groups & segmented radio strips (ConnectedButtonGroupSmallTokens.kt, m3.material.io/components/button-groups/specs) */
+:is([data-slot="toggle"], [data-slot="toggle-group"] > button[data-slot="tooltip-trigger"])::before {
   border-radius: inherit !important;
 }
 
-[data-slot="toggle-group"][data-variant="segmented"] {
+[data-slot="toggle-group"][data-variant="segmented"],
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) {
   border-radius: var(--m3-pill-row) !important;
   gap: 2px;
 }
 
-[data-slot="toggle-group"]:not([data-orientation="vertical"]) > [data-slot="toggle"] {
+[data-slot="toggle-group"]:not([data-orientation="vertical"]) > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]) {
   border-radius: var(--m3-shape-sm) !important;
 }
 
-[data-slot="toggle-group"]:not([data-orientation="vertical"]) > [data-slot="toggle"]:first-of-type {
+[data-slot="toggle-group"]:not([data-orientation="vertical"]) > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):first-of-type {
   border-start-start-radius: var(--m3-pill-control) !important;
   border-end-start-radius: var(--m3-pill-control) !important;
 }
 
-[data-slot="toggle-group"]:not([data-orientation="vertical"]) > [data-slot="toggle"]:last-of-type {
+[data-slot="toggle-group"]:not([data-orientation="vertical"]) > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):last-of-type {
   border-start-end-radius: var(--m3-pill-control) !important;
   border-end-end-radius: var(--m3-pill-control) !important;
 }
 
-[data-slot="toggle-group"][data-orientation="vertical"] > [data-slot="toggle"] {
+[data-slot="toggle-group"][data-orientation="vertical"] > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]) {
   border-radius: var(--m3-shape-sm) !important;
 }
 
-[data-slot="toggle-group"][data-orientation="vertical"] > [data-slot="toggle"]:first-of-type {
+[data-slot="toggle-group"][data-orientation="vertical"] > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):first-of-type {
   border-start-start-radius: var(--m3-pill-control) !important;
   border-start-end-radius: var(--m3-pill-control) !important;
 }
 
-[data-slot="toggle-group"][data-orientation="vertical"] > [data-slot="toggle"]:last-of-type {
+[data-slot="toggle-group"][data-orientation="vertical"] > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):last-of-type {
   border-end-start-radius: var(--m3-pill-control) !important;
   border-end-end-radius: var(--m3-pill-control) !important;
 }
 
-[data-slot="toggle-group"]:not([data-orientation="vertical"]) > [data-slot="toggle"]:is([data-pressed], [aria-pressed="true"]),
-[data-slot="toggle-group"][data-orientation="vertical"] > [data-slot="toggle"]:is([data-pressed], [aria-pressed="true"]) {
+[data-slot="toggle-group"]:not([data-orientation="vertical"]) > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):is([data-pressed], [aria-pressed="true"]),
+[data-slot="toggle-group"][data-orientation="vertical"] > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):is([data-pressed], [aria-pressed="true"]) {
   border-radius: var(--m3-pill-control) !important;
 }
 
-[data-slot="toggle-group"]:not([data-orientation="vertical"]) > [data-slot="toggle"]:not(:disabled):active,
-[data-slot="toggle-group"][data-orientation="vertical"] > [data-slot="toggle"]:not(:disabled):active {
+[data-slot="toggle-group"]:not([data-orientation="vertical"]) > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):not(:disabled):active,
+[data-slot="toggle-group"][data-orientation="vertical"] > :is([data-slot="toggle"], button[data-slot="tooltip-trigger"]):not(:disabled):active {
   border-radius: var(--m3-shape-xs) !important;
   scale: 1 !important;
 }
 
-/* Switches (SwitchTokens.kt: 16dp unselected -> 24dp selected -> 28dp pressed, FastSpatial motion) */
-[data-slot="switch"] {
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) > button[role="radio"] {
+  border-radius: var(--m3-shape-sm) !important;
+  transition:
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) > button[role="radio"]:first-of-type {
+  border-start-start-radius: var(--m3-pill-control) !important;
+  border-end-start-radius: var(--m3-pill-control) !important;
+}
+
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) > button[role="radio"]:last-of-type {
+  border-start-end-radius: var(--m3-pill-control) !important;
+  border-end-end-radius: var(--m3-pill-control) !important;
+}
+
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) > button[role="radio"]:is([aria-checked="true"], [data-checked]) {
+  border-radius: var(--m3-pill-control) !important;
+}
+
+[data-slot="popover-popup"] [role="radiogroup"]:not(:has([data-effort-row])) > button[role="radio"]:not(:disabled):active {
+  border-radius: var(--m3-shape-xs) !important;
+  scale: 1 !important;
+}
+
+/* Switches & inline menu switches (SwitchTokens.kt: 16dp unselected -> 24dp selected -> 28dp pressed, FastSpatial motion) */
+[data-slot="switch"],
+[data-slot="menu-checkbox-item"] > span:last-child:has(> span:only-child:empty) {
   border-radius: var(--m3-shape-full) !important;
   transition:
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
@@ -232,28 +505,36 @@ button[data-slot="popover-trigger"],
     box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-[data-slot="switch-thumb"] {
+[data-slot="switch-thumb"],
+[data-slot="menu-checkbox-item"] > span:last-child > span:only-child:empty {
   border-radius: var(--m3-shape-full) !important;
+  transform-origin: center !important;
   transition:
     translate var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-[data-slot="switch"][data-unchecked] [data-slot="switch-thumb"] {
+[data-slot="switch"][data-unchecked] [data-slot="switch-thumb"],
+[data-slot="menu-checkbox-item"][data-unchecked] > span:last-child > span:only-child:empty {
   scale: 0.72;
 }
 
-[data-slot="switch"][data-checked] [data-slot="switch-thumb"] {
+[data-slot="switch"][data-checked] [data-slot="switch-thumb"],
+[data-slot="menu-checkbox-item"][data-checked] > span:last-child > span:only-child:empty {
   scale: 1;
 }
 
-[data-slot="switch"]:not([data-disabled]):active [data-slot="switch-thumb"] {
+[data-slot="switch"]:not([data-disabled]):active [data-slot="switch-thumb"],
+[data-slot="menu-checkbox-item"]:not([data-disabled]):active > span:last-child > span:only-child:empty {
   scale: 1.12 !important;
 }
 
-/* Text inputs and selects */
-[data-slot="input"] {
+/* Text inputs, textareas, input groups, number fields, and selects */
+[data-slot="input-control"]:not(.rounded-none):not([data-slot="input-group"] *),
+[data-slot="textarea-control"]:not(.rounded-none):not([data-slot="input-group"] *),
+[data-slot="input-group"]:not(.dropdown-glass),
+[data-slot="number-field-group"] {
   border-radius: var(--m3-shape-md) !important;
   transition:
     border-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
@@ -261,11 +542,30 @@ button[data-slot="popover-trigger"],
     background-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects);
 }
 
-[data-slot="input"]:focus,
-[data-slot="input"]:focus-visible {
-  border-color: var(--m3-primary) !important;
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--m3-primary) 30%, transparent);
-  outline: none;
+:is(
+  [data-slot="input-control"]:not(.rounded-none):not([data-slot="input-group"] *),
+  [data-slot="textarea-control"]:not(.rounded-none):not([data-slot="input-group"] *),
+  [data-slot="input-group"]:not(.dropdown-glass),
+  [data-slot="number-field-group"]
+)::before {
+  border-radius: inherit !important;
+}
+
+[data-slot="number-field-decrement"],
+[data-slot="number-field-increment"] {
+  transition:
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-slot="number-field-decrement"] {
+  border-start-start-radius: calc(var(--m3-shape-md) - 1px) !important;
+  border-end-start-radius: calc(var(--m3-shape-md) - 1px) !important;
+}
+
+[data-slot="number-field-increment"] {
+  border-start-end-radius: calc(var(--m3-shape-md) - 1px) !important;
+  border-end-end-radius: calc(var(--m3-shape-md) - 1px) !important;
 }
 
 [data-slot="select-trigger"] {
@@ -289,6 +589,10 @@ button[data-slot="popover-trigger"],
   border-radius: var(--m3-shape-sm) !important;
 }
 
+[data-slot="select-trigger"]:not(:disabled):is(:hover, :active) {
+  scale: 1 !important;
+}
+
 [data-slot="select-trigger"]:focus,
 [data-slot="select-trigger"]:focus-visible {
   border-color: var(--m3-primary) !important;
@@ -296,7 +600,7 @@ button[data-slot="popover-trigger"],
   outline: none;
 }
 
-/* Sidebar, folder headers, and thread rows (NavigationDrawerTokens.kt: pill active indicator, no hover shift) */
+/* Sidebar, nav rows, right-panel tabs, and thread rows (NavigationDrawerTokens.kt: pill active indicator, no hover shift) */
 [data-slot="sidebar"],
 [data-slot="sidebar-inner"] {
   border-color: color-mix(in oklab, var(--m3-outline-variant) 55%, transparent);
@@ -304,7 +608,10 @@ button[data-slot="popover-trigger"],
 
 [data-thread-item] [role="button"],
 [data-thread-item] [data-sidebar-row],
-[data-sidebar-row] {
+[data-sidebar-row],
+[data-sidebar="menu-button"],
+[data-sidebar="menu-sub-button"],
+[data-slot="sidebar"] [role="option"] {
   border-radius: var(--m3-pill-row) !important;
   transition:
     border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
@@ -313,12 +620,45 @@ button[data-slot="popover-trigger"],
     box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-:is([data-thread-item] [role="button"], [data-thread-item] [data-sidebar-row], [data-sidebar-row]):active {
+:is(
+  [data-thread-item] [role="button"],
+  [data-thread-item] [data-sidebar-row],
+  [data-sidebar-row],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-slot="sidebar"] [role="option"]
+):not(:disabled):active {
   border-radius: var(--m3-shape-md) !important;
 }
 
-:is([data-thread-item] [role="button"], [data-thread-item] [data-sidebar-row], [data-sidebar-row]):is([aria-current="page"], [data-active="true"]) {
+:is(
+  [data-thread-item] [role="button"],
+  [data-thread-item] [data-sidebar-row],
+  [data-sidebar-row],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"],
+  [data-slot="sidebar"] [role="option"]
+):is([aria-current="page"], [data-active="true"]) {
   font-weight: 600;
+}
+
+[data-active-tab] {
+  border-radius: var(--m3-pill-control) !important;
+  transition:
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-active-tab]:active {
+  border-radius: var(--m3-shape-sm) !important;
+}
+
+[data-active-tab] button {
+  border-radius: var(--m3-shape-full);
+  transition:
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 [data-slot="project-monogram"],
@@ -343,7 +683,8 @@ button[data-slot="popover-trigger"],
   box-shadow: 0 1px 3px color-mix(in oklab, var(--m3-primary) 14%, transparent);
 }
 
-[data-timeline-row-kind="work"] button {
+[data-timeline-row-kind="work"] button,
+[data-changed-files-group] button {
   border-radius: var(--m3-shape-md) !important;
   transition:
     border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
@@ -351,7 +692,7 @@ button[data-slot="popover-trigger"],
     color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-[data-timeline-row-kind="work"] button:active {
+:is([data-timeline-row-kind="work"] button, [data-changed-files-group] button):not(:disabled):active {
   border-radius: var(--m3-shape-sm) !important;
   scale: 1 !important;
 }
@@ -406,9 +747,10 @@ button[data-slot="popover-trigger"],
   border-radius: var(--m3-shape-lg-inc) !important;
 }
 
-/* Dialogs & alert dialogs (DialogTokens.kt: 28dp container, DefaultSpatial enter / FastEffects exit) */
-[data-slot="dialog-popup"],
-[data-slot="alert-dialog-popup"] {
+/* Dialogs, alert dialogs, & command palette (DialogTokens.kt: 28dp container, DefaultSpatial enter / FastEffects exit) */
+[data-slot="dialog-popup"]:not(.rounded-none),
+[data-slot="alert-dialog-popup"],
+[data-slot="command-dialog-popup"] {
   border-radius: var(--m3-shape-xl) !important;
   transition:
     scale var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
@@ -416,51 +758,66 @@ button[data-slot="popover-trigger"],
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-:is([data-slot="dialog-popup"], [data-slot="alert-dialog-popup"]):is([data-starting-style], [data-ending-style]) {
+:is([data-slot="dialog-popup"]:not(.rounded-none), [data-slot="alert-dialog-popup"], [data-slot="command-dialog-popup"]):is([data-starting-style], [data-ending-style]) {
   scale: 0.92;
   translate: 0 12px;
   opacity: 0;
 }
 
-:is([data-slot="dialog-popup"], [data-slot="alert-dialog-popup"])[data-ending-style] {
+:is([data-slot="dialog-popup"]:not(.rounded-none), [data-slot="alert-dialog-popup"], [data-slot="command-dialog-popup"])[data-ending-style] {
   transition:
     scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     translate var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
+[data-slot="dialog-footer"],
+[data-slot="alert-dialog-footer"],
+[data-slot="command-footer"] {
+  border-end-start-radius: calc(var(--m3-shape-xl) - 1px);
+  border-end-end-radius: calc(var(--m3-shape-xl) - 1px);
+}
+
 [data-slot="dialog-backdrop"],
 [data-slot="alert-dialog-backdrop"],
+[data-slot="command-dialog-backdrop"],
 [data-slot="sheet-backdrop"] {
   transition: opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-/* Menus & selects (SegmentedMenuTokens.kt: 16dp container, Menu.kt: FastSpatial scale + FastEffects opacity) */
+/* Menus, selects, comboboxes, & autocompletes (SegmentedMenuTokens.kt: 16dp container, Menu.kt: FastSpatial scale + FastEffects opacity) */
 [data-slot="menu-popup"],
-[data-slot="select-popup"] {
+[data-slot="select-popup"],
+[data-slot="combobox-positioner"] > span,
+[data-slot="autocomplete-positioner"] > span {
   border-radius: var(--m3-shape-lg) !important;
   transition:
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-[data-slot="select-popup"] > div {
+[data-slot="select-popup"] > div,
+[data-slot="combobox-popup"],
+[data-slot="autocomplete-popup"] {
   border-radius: inherit !important;
 }
 
-:is([data-slot="menu-popup"], [data-slot="select-popup"]):is([data-starting-style], [data-ending-style]) {
+:is([data-slot="menu-popup"], [data-slot="select-popup"]):is([data-starting-style], [data-ending-style]),
+:is([data-slot="combobox-positioner"] > span, [data-slot="autocomplete-positioner"] > span):has(> [data-starting-style], > [data-ending-style]) {
   scale: 0.86;
   opacity: 0;
 }
 
-:is([data-slot="menu-popup"], [data-slot="select-popup"])[data-ending-style] {
+:is([data-slot="menu-popup"], [data-slot="select-popup"])[data-ending-style],
+:is([data-slot="combobox-positioner"] > span, [data-slot="autocomplete-positioner"] > span):has(> [data-ending-style]) {
   transition:
     scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-/* Popovers (FastSpatial scale, DefaultSpatial resize, FastEffects opacity/exit, Base UI instant preserved) */
-[data-slot="popover-popup"]:not(.rounded-none) {
+/* Popovers & preview cards (FastSpatial scale, DefaultSpatial resize, FastEffects opacity/exit, Base UI instant preserved) */
+[data-slot="popover-popup"]:not(.rounded-none),
+[data-slot="preview-card-popup"] {
   border-radius: var(--m3-shape-lg-inc) !important;
   transition:
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
@@ -469,12 +826,12 @@ button[data-slot="popover-trigger"],
     height var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial);
 }
 
-[data-slot="popover-popup"]:not(.rounded-none):is([data-starting-style], [data-ending-style]) {
+:is([data-slot="popover-popup"]:not(.rounded-none), [data-slot="preview-card-popup"]):is([data-starting-style], [data-ending-style]) {
   scale: 0.9;
   opacity: 0;
 }
 
-[data-slot="popover-popup"]:not(.rounded-none)[data-ending-style] {
+:is([data-slot="popover-popup"]:not(.rounded-none), [data-slot="preview-card-popup"])[data-ending-style] {
   transition:
     scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
@@ -507,11 +864,15 @@ button[data-slot="popover-trigger"],
   transition-duration: 0ms;
 }
 
-[data-slot="dialog-popup"]::before,
+[data-slot="dialog-popup"]:not(.rounded-none)::before,
 [data-slot="alert-dialog-popup"]::before,
+[data-slot="command-dialog-popup"]::before,
 [data-slot="popover-popup"]:not(.rounded-none)::before,
+[data-slot="preview-card-popup"]::before,
 [data-slot="menu-popup"]::before,
 [data-slot="select-popup"]::before,
+[data-slot="combobox-positioner"] > span::before,
+[data-slot="autocomplete-positioner"] > span::before,
 [data-slot="tooltip-popup"]::before {
   border-radius: inherit !important;
 }
@@ -589,12 +950,17 @@ button[data-slot="popover-trigger"],
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-/* Menu & select items (concentric 8px -> 12px inside 16px container with 4px padding; FastSpatial morph per Menu.kt) */
+/* Menu, select, combobox, autocomplete, command & effort items (concentric 8px -> 12px inside 16px container; FastSpatial morph per Menu.kt) */
 [data-slot="menu-item"],
 [data-slot="select-item"],
 [data-slot="menu-radio-item"],
 [data-slot="menu-checkbox-item"],
-[data-slot="menu-sub-trigger"] {
+[data-slot="menu-sub-trigger"],
+[data-slot="combobox-item"],
+[data-slot="autocomplete-item"],
+[data-slot="command-item"],
+[data-effort-row],
+[role="option"]:not([data-sidebar="menu-button"], [data-sidebar-row], [data-slot="sidebar"] [role="option"]) {
   border-radius: var(--m3-shape-sm) !important;
   transition:
     border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
@@ -607,15 +973,28 @@ button[data-slot="popover-trigger"],
   [data-slot="select-item"],
   [data-slot="menu-radio-item"],
   [data-slot="menu-checkbox-item"],
-  [data-slot="menu-sub-trigger"]
-):is([data-highlighted], [data-checked], [data-selected]) {
+  [data-slot="menu-sub-trigger"],
+  [data-slot="combobox-item"],
+  [data-slot="autocomplete-item"],
+  [data-slot="command-item"],
+  [data-effort-row],
+  [role="option"]:not([data-sidebar="menu-button"], [data-sidebar-row], [data-slot="sidebar"] [role="option"])
+):is([data-highlighted], [data-checked], [data-selected], [data-active="true"], [aria-selected="true"], [aria-checked="true"]),
+[data-effort-row]:hover {
   border-radius: var(--m3-shape-md) !important;
 }
 
-/* Cards and terminal drawer (ExpandedListTokens.kt: CornerLarge 16dp) */
+/* Cards, alerts, settings groups, and terminal drawer (ExpandedListTokens.kt: CornerLarge 16dp) */
 [data-thread-details-card],
-[data-settings-page-scroll] [data-slot="card"] {
+[data-settings-page-scroll] [data-slot="card"],
+[data-slot="settings-group"],
+[data-theme-library-card],
+[data-slot="alert"]:not([data-variant="sidebar"]) {
   border-radius: var(--m3-shape-lg) !important;
+}
+
+[data-slot="alert"][data-variant="sidebar"] {
+  border-radius: var(--m3-shape-md) !important;
 }
 
 [data-thread-terminal-drawer] {

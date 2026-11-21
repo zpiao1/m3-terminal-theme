@@ -268,7 +268,7 @@ fn t3_code_theme() {
         }
 
         let css = v["css"].as_str().expect("css string");
-        assert!(!css.is_empty() && css.len() < 40_000, "css len={}", css.len());
+        assert!(!css.is_empty() && css.len() < 50_000, "css len={}", css.len());
         let css_lower = css.to_ascii_lowercase();
         assert!(!css.contains('\\'), "css contains backslash");
         for forbidden in ["@import", "url(", "image-set(", "src("] {
