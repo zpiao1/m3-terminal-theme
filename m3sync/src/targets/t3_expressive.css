@@ -1,11 +1,11 @@
-/* Material 3 Expressive (2026 spec) shape, spring motion, and surface polish */
+/* Material 3 Expressive (m3.material.io / androidx v14.1.0 + v0.14.0) shape, spring motion, and surface polish */
 
 :root {
-  /* Master T3 Code radius tokens */
+  /* Master T3 Code radius tokens (finite pill radius so border-radius morphs never clamp across 9999px) */
   --radius: 1rem;
-  --control-radius: 9999px;
+  --control-radius: 16px;
 
-  /* M3 Expressive Shape scale (ShapeTokens.kt v14.1.0) */
+  /* M3 Expressive Shape scale (m3.material.io/styles/shape/corner-radius-scale, ShapeTokens.kt v14.1.0) */
   --m3-shape-xs: 4px;
   --m3-shape-sm: 8px;
   --m3-shape-md: 12px;
@@ -15,39 +15,59 @@
   --m3-shape-xl-inc: 32px;
   --m3-shape-full: 9999px;
 
-  /* M3 Expressive Spring Motion (ExpressiveMotionTokens.kt v0.14.0) */
-  --m3-motion-fast-spatial-duration: 369ms;
-  --m3-motion-fast-spatial: linear(0, 0.1041, 0.33, 0.5794, 0.7945, 0.9503, 1.0444, 1.0872, 1.094, 1.0799, 1.0572, 1.034, 1.015, 1.0018, 0.9943, 0.9913, 0.9913, 0.993, 0.9952, 0.9973, 1);
-  --m3-motion-default-spatial-duration: 444ms;
-  --m3-motion-default-spatial: linear(0, 0.0713, 0.2265, 0.4044, 0.5712, 0.7108, 0.8189, 0.897, 0.9499, 0.9832, 1.0023, 1.0117, 1.015, 1.0147, 1.0127, 1.0101, 1.0074, 1.0051, 1.0033, 1.002, 1);
-  --m3-motion-slow-spatial-duration: 609ms;
-  --m3-motion-slow-spatial: linear(0, 0.0714, 0.2269, 0.4051, 0.572, 0.7116, 0.8196, 0.8976, 0.9503, 0.9835, 1.0024, 1.0117, 1.015, 1.0147, 1.0127, 1.01, 1.0074, 1.0051, 1.0033, 1.0019, 1);
-  --m3-motion-fast-effects-duration: 159ms;
-  --m3-motion-fast-effects: linear(0, 0.0781, 0.2343, 0.4005, 0.5481, 0.6683, 0.7612, 0.8307, 0.8814, 0.9177, 0.9434, 0.9613, 0.9737, 0.9822, 0.988, 0.992, 0.9946, 0.9964, 0.9976, 0.9984, 1);
-  --m3-motion-default-effects-duration: 240ms;
-  --m3-motion-default-effects: linear(0, 0.0783, 0.2348, 0.4012, 0.549, 0.6691, 0.762, 0.8314, 0.882, 0.9182, 0.9437, 0.9615, 0.9739, 0.9823, 0.9881, 0.992, 0.9947, 0.9965, 0.9976, 0.9984, 1);
-  --m3-motion-slow-effects-duration: 336ms;
-  --m3-motion-slow-effects: linear(0, 0.0786, 0.2356, 0.4023, 0.5502, 0.6703, 0.7631, 0.8323, 0.8827, 0.9188, 0.9442, 0.9619, 0.9742, 0.9826, 0.9883, 0.9921, 0.9948, 0.9965, 0.9977, 0.9985, 1);
+  /* Finite pill radii matched to T3 Code control heights for artifact-free corner morphing */
+  --m3-pill-control: 16px;
+  --m3-pill-row: 18px;
+
+  /* M3 Expressive Motion Physics (m3.material.io/styles/motion/overview/specs, ExpressiveMotionTokens.kt v0.14.0)
+   * Analytical spring ODE samples in linear() (Chromium 113+):
+   *   fast-spatial:    damping=0.6, stiffness=800  (web fallback: cubic-bezier(0.42, 1.67, 0.21, 0.90) 350ms)
+   *   default-spatial: damping=0.8, stiffness=380  (web fallback: cubic-bezier(0.38, 1.21, 0.22, 1.00) 500ms)
+   *   slow-spatial:    damping=0.8, stiffness=200  (web fallback: cubic-bezier(0.39, 1.29, 0.35, 0.98) 650ms)
+   *   fast-effects:    damping=1.0, stiffness=3800 (web fallback: cubic-bezier(0.31, 0.94, 0.34, 1.00) 150ms)
+   *   default-effects: damping=1.0, stiffness=1600 (web fallback: cubic-bezier(0.34, 0.80, 0.34, 1.00) 200ms)
+   *   slow-effects:    damping=1.0, stiffness=800  (web fallback: cubic-bezier(0.34, 0.88, 0.34, 1.00) 300ms)
+   */
+  --m3-motion-fast-spatial-duration: 359ms;
+  --m3-motion-fast-spatial: linear(0, 0.075, 0.2481, 0.4562, 0.6567, 0.8248, 0.9503, 1.0326, 1.0777, 1.0941, 1.0909, 1.0764, 1.0572, 1.0377, 1.0207, 1.0076, 0.9987, 0.9935, 0.9913, 0.9912, 0.9923, 0.994, 0.9959, 0.9976, 1);
+  --m3-motion-default-spatial-duration: 434ms;
+  --m3-motion-default-spatial: linear(0, 0.0514, 0.1698, 0.3152, 0.4623, 0.5966, 0.7108, 0.803, 0.874, 0.9262, 0.9629, 0.9872, 1.0023, 1.0106, 1.0144, 1.0151, 1.0142, 1.0123, 1.0101, 1.0078, 1.0058, 1.0042, 1.0028, 1.0018, 1);
+  --m3-motion-slow-spatial-duration: 599ms;
+  --m3-motion-slow-spatial: linear(0, 0.0515, 0.1702, 0.3158, 0.4631, 0.5974, 0.7116, 0.8038, 0.8746, 0.9267, 0.9633, 0.9875, 1.0024, 1.0107, 1.0144, 1.0151, 1.0141, 1.0122, 1.01, 1.0078, 1.0058, 1.0041, 1.0028, 1.0018, 1);
+  --m3-motion-fast-effects-duration: 149ms;
+  --m3-motion-fast-effects: linear(0, 0.057, 0.1788, 0.3185, 0.4524, 0.5701, 0.6683, 0.7475, 0.8099, 0.8581, 0.8949, 0.9226, 0.9434, 0.9587, 0.97, 0.9783, 0.9844, 0.9888, 0.992, 0.9943, 0.9959, 0.9971, 0.9979, 0.9985, 1);
+  --m3-motion-default-effects-duration: 230ms;
+  --m3-motion-default-effects: linear(0, 0.0571, 0.1793, 0.3192, 0.4533, 0.571, 0.6691, 0.7483, 0.8106, 0.8587, 0.8954, 0.9231, 0.9437, 0.959, 0.9703, 0.9785, 0.9845, 0.9889, 0.992, 0.9943, 0.9959, 0.9971, 0.9979, 0.9985, 1);
+  --m3-motion-slow-effects-duration: 326ms;
+  --m3-motion-slow-effects: linear(0, 0.0574, 0.1799, 0.3202, 0.4544, 0.5722, 0.6703, 0.7494, 0.8116, 0.8596, 0.8961, 0.9237, 0.9442, 0.9594, 0.9706, 0.9788, 0.9847, 0.989, 0.9921, 0.9944, 0.996, 0.9972, 0.998, 0.9986, 1);
 }
 
-/* Interactive buttons, composer controls, and toolbar controls */
+/* Interactive buttons, icon buttons, composer controls, and toolbar controls.
+ * Per M3 Expressive Button.kt / IconButton.kt:
+ *   - Hover uses state-layer color transition (FastEffects), never scale or shape morph.
+ *   - Pressed morphs round -> CornerSmall (8px) using DefaultEffects (critically damped, zero bounce).
+ *   - Toggled or open menu/popover triggers morph round -> CornerMedium (12px); bare tooltip
+ *     [data-popup-open] without [aria-haspopup] is excluded so hovering a tooltip never morphs shape.
+ */
 [data-slot="button"],
 [data-chat-composer-form] button,
 [data-chat-header] button,
 [data-toolbar-control],
 [data-slot="menu-trigger"],
 [data-slot="toggle"] {
-  border-radius: var(--m3-shape-full) !important;
+  border-radius: var(--m3-btn-radius, var(--m3-pill-control)) !important;
   font-weight: 550;
   transition:
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    transform var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     border-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-chat-composer-transition-actions] button {
+  --m3-btn-radius: var(--m3-pill-row);
 }
 
 [data-slot="button"]::before {
@@ -61,18 +81,7 @@
   [data-toolbar-control],
   [data-slot="menu-trigger"],
   [data-slot="toggle"]
-):not(:disabled):hover {
-  scale: 1.03;
-}
-
-:is(
-  [data-slot="button"],
-  [data-chat-composer-form] button,
-  [data-chat-header] button,
-  [data-toolbar-control],
-  [data-slot="menu-trigger"],
-  [data-slot="toggle"]
-):not(:disabled):is([data-popup-open], [aria-expanded="true"], [aria-pressed="true"], [data-pressed]) {
+):not(:disabled):is([aria-expanded="true"], [aria-pressed="true"], [data-pressed], [aria-haspopup][data-popup-open]) {
   border-radius: var(--m3-shape-md) !important;
 }
 
@@ -85,38 +94,41 @@
   [data-slot="toggle"]
 ):not(:disabled):active {
   border-radius: var(--m3-shape-sm) !important;
-  scale: 0.95;
+  scale: 1 !important;
 }
 
-/* Switches */
+/* Switches (SwitchTokens.kt: 16dp unselected -> 24dp selected -> 28dp pressed, FastSpatial motion) */
 [data-slot="switch"] {
   border-radius: var(--m3-shape-full) !important;
   transition:
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     border-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 [data-slot="switch-thumb"] {
+  border-radius: var(--m3-shape-full) !important;
   transition:
     translate var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 [data-slot="switch"][data-unchecked] [data-slot="switch-thumb"] {
-  scale: 0.82;
+  scale: 0.72;
 }
 
 [data-slot="switch"][data-checked] [data-slot="switch-thumb"] {
   scale: 1;
 }
 
+[data-slot="switch"]:not([data-disabled]):active [data-slot="switch-thumb"] {
+  scale: 1.12 !important;
+}
+
 /* Text inputs and selects */
 [data-slot="input"] {
-  border-radius: 14px !important;
+  border-radius: var(--m3-shape-md) !important;
   transition:
     border-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     box-shadow var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
@@ -131,13 +143,12 @@
 }
 
 [data-slot="select-trigger"] {
-  border-radius: var(--m3-shape-full) !important;
+  border-radius: var(--m3-pill-control) !important;
   transition:
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    border-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
-    box-shadow var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
-    background-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects);
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    border-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 [data-slot="select-trigger"]::before {
@@ -148,6 +159,10 @@
   border-radius: var(--m3-shape-md) !important;
 }
 
+[data-slot="select-trigger"]:not(:disabled):active {
+  border-radius: var(--m3-shape-sm) !important;
+}
+
 [data-slot="select-trigger"]:focus,
 [data-slot="select-trigger"]:focus-visible {
   border-color: var(--m3-primary) !important;
@@ -155,7 +170,7 @@
   outline: none;
 }
 
-/* Sidebar, folder headers, and thread rows */
+/* Sidebar, folder headers, and thread rows (NavigationDrawerTokens.kt: pill active indicator, no hover shift) */
 [data-slot="sidebar"],
 [data-slot="sidebar-inner"] {
   border-color: color-mix(in oklab, var(--m3-outline-variant) 55%, transparent);
@@ -164,23 +179,16 @@
 [data-thread-item] [role="button"],
 [data-thread-item] [data-sidebar-row],
 [data-sidebar-row] {
-  border-radius: var(--m3-shape-full) !important;
+  border-radius: var(--m3-pill-row) !important;
   transition:
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    transform var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-:is([data-thread-item] [role="button"], [data-thread-item] [data-sidebar-row], [data-sidebar-row]):hover {
-  transform: translateX(2px);
-}
-
 :is([data-thread-item] [role="button"], [data-thread-item] [data-sidebar-row], [data-sidebar-row]):active {
   border-radius: var(--m3-shape-md) !important;
-  scale: 0.985;
 }
 
 :is([data-thread-item] [role="button"], [data-thread-item] [data-sidebar-row], [data-sidebar-row]):is([aria-current="page"], [data-active="true"]) {
@@ -190,11 +198,6 @@
 [data-slot="project-monogram"],
 [data-slot="project-monogram"] > svg {
   border-radius: var(--m3-shape-md) !important;
-  transition: transform var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial);
-}
-
-[data-slot="project-monogram"]:hover {
-  transform: scale(1.06);
 }
 
 /* Header and conversation surface */
@@ -215,23 +218,19 @@
 }
 
 [data-timeline-row-kind="work"] button {
-  border-radius: 14px !important;
+  border-radius: var(--m3-shape-md) !important;
   transition:
-    border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
-    scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 [data-timeline-row-kind="work"] button:active {
-  border-radius: 10px !important;
+  border-radius: var(--m3-shape-sm) !important;
+  scale: 1 !important;
 }
 
-/* Composer shell, host, and main glass surface */
-[data-chat-composer-form] {
-  transition: transform var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial);
-}
-
+/* Composer shell, host, and main glass surface (steady CornerExtraLarge 28px; focus outline uses DefaultEffects) */
 [data-slot="composer-shell"],
 [data-slot="composer-shell"]::before,
 [data-slot="composer-host"],
@@ -241,25 +240,9 @@
 [data-chat-composer-main-surface]::after {
   border-radius: var(--m3-shape-xl) !important;
   transition:
-    border-radius var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
-    transform var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
     border-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     box-shadow var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
     background-color var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects);
-}
-
-[data-slot="composer-shell"]:focus-within {
-  transform: translateY(-1px);
-}
-
-[data-slot="composer-shell"]:focus-within,
-[data-slot="composer-shell"]:focus-within::before,
-[data-slot="composer-shell"]:focus-within [data-slot="composer-host"],
-[data-slot="composer-shell"]:focus-within [data-slot="composer-host"]::before,
-[data-slot="composer-shell"]:focus-within [data-slot="composer-host"]::after,
-[data-slot="composer-shell"]:focus-within [data-chat-composer-main-surface],
-[data-slot="composer-shell"]:focus-within [data-chat-composer-main-surface]::after {
-  border-radius: 24px !important;
 }
 
 [data-slot="composer-host"]:focus-within {
@@ -297,7 +280,7 @@
   border-radius: var(--m3-shape-lg-inc) !important;
 }
 
-/* Overlays, menus, dialogs, tooltips, cards, and terminal drawer */
+/* Dialogs (DialogTokens.kt: 28dp container, DefaultSpatial enter / FastEffects exit) */
 [data-slot="dialog-popup"] {
   border-radius: var(--m3-shape-xl) !important;
   transition:
@@ -307,14 +290,44 @@
 }
 
 [data-slot="dialog-popup"]:is([data-starting-style], [data-ending-style]) {
-  scale: 0.9;
-  translate: 0 14px;
+  scale: 0.92;
+  translate: 0 12px;
   opacity: 0;
 }
 
-[data-slot="popover-popup"]:not(.rounded-none),
+[data-slot="dialog-popup"][data-ending-style] {
+  transition:
+    scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    translate var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+/* Menus & selects (SegmentedMenuTokens.kt: 16dp container, Menu.kt: FastSpatial scale + FastEffects opacity) */
 [data-slot="menu-popup"],
 [data-slot="select-popup"] {
+  border-radius: var(--m3-shape-lg) !important;
+  transition:
+    scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-slot="select-popup"] > div {
+  border-radius: inherit !important;
+}
+
+:is([data-slot="menu-popup"], [data-slot="select-popup"]):is([data-starting-style], [data-ending-style]) {
+  scale: 0.86;
+  opacity: 0;
+}
+
+:is([data-slot="menu-popup"], [data-slot="select-popup"])[data-ending-style] {
+  transition:
+    scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+/* Popovers (FastSpatial scale, DefaultSpatial resize, FastEffects opacity/exit, Base UI instant preserved) */
+[data-slot="popover-popup"]:not(.rounded-none) {
   border-radius: var(--m3-shape-lg-inc) !important;
   transition:
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
@@ -323,13 +336,24 @@
     height var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial);
 }
 
-:is([data-slot="popover-popup"]:not(.rounded-none), [data-slot="menu-popup"], [data-slot="select-popup"]):is([data-starting-style], [data-ending-style]) {
-  scale: 0.91;
+[data-slot="popover-popup"]:not(.rounded-none):is([data-starting-style], [data-ending-style]) {
+  scale: 0.9;
   opacity: 0;
 }
 
+[data-slot="popover-popup"]:not(.rounded-none)[data-ending-style] {
+  transition:
+    scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-slot="popover-popup"][data-instant] {
+  transition-duration: 0ms;
+}
+
+/* Tooltips (Tooltip.kt: FastSpatial scale + FastEffects opacity, Base UI instant handoff preserved) */
 [data-slot="tooltip-popup"] {
-  border-radius: var(--m3-shape-md) !important;
+  border-radius: var(--m3-shape-sm) !important;
   transition:
     scale var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
@@ -340,6 +364,16 @@
   opacity: 0;
 }
 
+[data-slot="tooltip-popup"][data-ending-style] {
+  transition:
+    scale var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
+    opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
+}
+
+[data-slot="tooltip-popup"][data-instant] {
+  transition-duration: 0ms;
+}
+
 [data-slot="dialog-popup"]::before,
 [data-slot="popover-popup"]:not(.rounded-none)::before,
 [data-slot="menu-popup"]::before,
@@ -348,22 +382,33 @@
   border-radius: inherit !important;
 }
 
+/* Menu & select items (concentric 8px -> 12px inside 16px container with 4px padding; FastSpatial morph per Menu.kt) */
 [data-slot="menu-item"],
-[data-slot="select-item"] {
-  border-radius: 10px !important;
+[data-slot="select-item"],
+[data-slot="menu-radio-item"],
+[data-slot="menu-checkbox-item"],
+[data-slot="menu-sub-trigger"] {
+  border-radius: var(--m3-shape-sm) !important;
   transition:
     border-radius var(--m3-motion-fast-spatial-duration) var(--m3-motion-fast-spatial),
     background-color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
     color var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
-:is([data-slot="menu-item"], [data-slot="select-item"])[data-highlighted] {
-  border-radius: var(--m3-shape-full) !important;
+:is(
+  [data-slot="menu-item"],
+  [data-slot="select-item"],
+  [data-slot="menu-radio-item"],
+  [data-slot="menu-checkbox-item"],
+  [data-slot="menu-sub-trigger"]
+):is([data-highlighted], [data-checked], [data-selected]) {
+  border-radius: var(--m3-shape-md) !important;
 }
 
+/* Cards and terminal drawer (ExpandedListTokens.kt: CornerLarge 16dp) */
 [data-thread-details-card],
 [data-settings-page-scroll] [data-slot="card"] {
-  border-radius: var(--m3-shape-lg-inc) !important;
+  border-radius: var(--m3-shape-lg) !important;
 }
 
 [data-thread-terminal-drawer] {
