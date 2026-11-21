@@ -4,7 +4,7 @@
   /* Master T3 Code radius and drawer motion tokens */
   --radius: 1rem;
   --control-radius: 16px;
-  --ease-drawer: var(--m3-motion-default-spatial);
+  --ease-drawer: var(--m3-motion-default-effects);
 
   /* M3 Expressive Shape scale (m3.material.io/styles/shape/corner-radius-scale, ShapeTokens.kt v14.1.0) */
   --m3-shape-xs: 4px;
@@ -125,6 +125,14 @@
 [data-chat-composer-transition-prompt] {
   --m3-btn-radius: 0px;
   font-weight: inherit;
+}
+
+/* Titlebar panel controls remount between root and header when the right panel toggles;
+ * keep M3 shape morphing while avoiding a background-color fade-in blink under a stationary cursor. */
+:is([data-workspace-titlebar-controls], [data-panel-layout-controls]) button {
+  transition:
+    border-radius var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    box-shadow var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects);
 }
 
 :where(
@@ -901,20 +909,19 @@
   border-radius: inherit !important;
 }
 
-/* App panels (sidebar & terminal drawer), collapsibles, sheets, and toasts */
-[data-panel-animations="true"] [data-slot="sidebar"][data-state="expanded"] :is([data-slot="sidebar-gap"], [data-slot="sidebar-container"]) {
-  transition-duration: var(--m3-motion-default-spatial-duration);
-  transition-timing-function: var(--m3-motion-default-spatial);
-}
-
-[data-panel-animations="true"] [data-slot="sidebar"][data-state="collapsed"] :is([data-slot="sidebar-gap"], [data-slot="sidebar-container"]) {
-  transition-duration: var(--m3-motion-default-effects-duration);
+/* App panels (sidebar, header inset, inline right panel, & terminal drawer), collapsibles, sheets, and toasts:
+ * preserve T3 Code's --panel-animation-duration so JS presence timers never clip exits,
+ * and use critically-damped DefaultEffects timing so width/row transitions never overshoot. */
+[data-panel-animations="true"] [data-slot="sidebar"] :is([data-slot="sidebar-gap"], [data-slot="sidebar-container"]),
+[data-panel-animations="true"] [data-chat-header],
+[data-panel-animations="true"] [data-preview-panel-mode="inline"],
+[data-panel-animations="true"] div:has(> div > [data-thread-terminal-drawer]) {
   transition-timing-function: var(--m3-motion-default-effects);
 }
 
-[data-panel-animations="true"] div:has(> div > [data-thread-terminal-drawer]) {
-  transition-duration: var(--m3-motion-default-spatial-duration);
-  transition-timing-function: var(--m3-motion-default-spatial);
+[data-panel-animations="true"] [data-chat-header] > [data-workspace-titlebar-controls]:not(:has([data-right-panel-toggle])) {
+  opacity: 1;
+  transition: opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects) var(--panel-animation-duration, 100ms);
 }
 
 [data-slot="collapsible-panel"] {
@@ -930,8 +937,8 @@
 [data-slot="sheet-popup"] {
   transition:
     opacity var(--m3-motion-fast-effects-duration) var(--m3-motion-fast-effects),
-    translate var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial),
-    transform var(--m3-motion-default-spatial-duration) var(--m3-motion-default-spatial);
+    translate var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects),
+    transform var(--m3-motion-default-effects-duration) var(--m3-motion-default-effects);
 }
 
 [data-slot="sheet-popup"][data-ending-style] {
@@ -1133,6 +1140,10 @@
 
   [data-slot="radio-indicator"]::before {
     scale: 0;
+  }
+
+  [data-panel-animations="true"] [data-chat-header] > [data-workspace-titlebar-controls]:not(:has([data-right-panel-toggle])) {
+    opacity: 0;
   }
 }
 
